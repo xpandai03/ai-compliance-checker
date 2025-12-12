@@ -22,7 +22,7 @@ export default function ExplainabilityPanel({ questions }: ExplainabilityPanelPr
   const handleQuestionClick = (question: ExplainabilityQuestion) => {
     if (askedQuestions.has(question.id)) return;
 
-    setAskedQuestions((prev) => new Set([...prev, question.id]));
+    setAskedQuestions((prev) => new Set(Array.from(prev).concat(question.id)));
     setMessages((prev) => [
       ...prev,
       { type: "question", content: question.question },
