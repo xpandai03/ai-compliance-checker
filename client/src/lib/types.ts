@@ -25,12 +25,25 @@ export interface ModelProfile {
   provider_metadata?: ProviderMetadata;
 }
 
+export interface RegulationRef {
+  regulation: string;
+  article: string;
+}
+
 export interface TriggeredRule {
   id: string;
   description: string;
   explanation: string;
   citations: string[];
   riskContribution: "high" | "limited" | "minimal";
+  regulation_refs: RegulationRef[];
+}
+
+export interface AppliedArticle {
+  article: string;
+  title: string;
+  summary: string;
+  triggeringRuleIds: string[];
 }
 
 export interface ComplianceFindings {
@@ -38,6 +51,7 @@ export interface ComplianceFindings {
   confidenceScore: number;
   applicableRegulation: string;
   relevantArticles: string[];
+  appliedArticles: AppliedArticle[];
   statusFlag: "Needs Manual Review" | "Compliant" | "Non-Compliant";
   triggeredRules: TriggeredRule[];
 }

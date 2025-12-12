@@ -6,6 +6,11 @@ export interface RuleCondition {
   value: string | string[];
 }
 
+export interface RegulationRef {
+  regulation: string;
+  article: string;
+}
+
 export interface ComplianceRule {
   id: string;
   description: string;
@@ -14,6 +19,7 @@ export interface ComplianceRule {
   conditions: RuleCondition[];
   conditionLogic: "AND" | "OR";
   riskContribution: "high" | "limited" | "minimal";
+  regulation_refs: RegulationRef[];
 }
 
 export const EU_AI_ACT_RULES: ComplianceRule[] = [
@@ -28,6 +34,10 @@ export const EU_AI_ACT_RULES: ComplianceRule[] = [
     ],
     conditionLogic: "AND",
     riskContribution: "high",
+    regulation_refs: [
+      { regulation: "EU AI Act", article: "Article 52" },
+      { regulation: "EU AI Act", article: "Recital 70" }
+    ],
   },
   {
     id: "rule_foundation_model",
@@ -40,6 +50,10 @@ export const EU_AI_ACT_RULES: ComplianceRule[] = [
     ],
     conditionLogic: "OR",
     riskContribution: "high",
+    regulation_refs: [
+      { regulation: "EU AI Act", article: "Article 28b" },
+      { regulation: "EU AI Act", article: "Annex VIII" }
+    ],
   },
   {
     id: "rule_customer_interaction",
@@ -52,6 +66,10 @@ export const EU_AI_ACT_RULES: ComplianceRule[] = [
     ],
     conditionLogic: "OR",
     riskContribution: "limited",
+    regulation_refs: [
+      { regulation: "EU AI Act", article: "Article 52" },
+      { regulation: "EU AI Act", article: "Article 13" }
+    ],
   },
   {
     id: "rule_enterprise_internal",
@@ -64,6 +82,10 @@ export const EU_AI_ACT_RULES: ComplianceRule[] = [
     ],
     conditionLogic: "OR",
     riskContribution: "minimal",
+    regulation_refs: [
+      { regulation: "EU AI Act", article: "Article 29" },
+      { regulation: "EU AI Act", article: "Recital 48" }
+    ],
   },
   {
     id: "rule_open_source",
@@ -76,6 +98,9 @@ export const EU_AI_ACT_RULES: ComplianceRule[] = [
     ],
     conditionLogic: "OR",
     riskContribution: "limited",
+    regulation_refs: [
+      { regulation: "EU AI Act", article: "Recital 102" }
+    ],
   },
   {
     id: "rule_automated_decisions",
@@ -88,6 +113,10 @@ export const EU_AI_ACT_RULES: ComplianceRule[] = [
     ],
     conditionLogic: "OR",
     riskContribution: "high",
+    regulation_refs: [
+      { regulation: "EU AI Act", article: "Article 14" },
+      { regulation: "EU AI Act", article: "Article 6" }
+    ],
   },
 ];
 

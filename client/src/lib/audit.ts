@@ -1,5 +1,6 @@
-import type { ModelProfile, ComplianceFindings, TriggeredRule } from "./types";
+import type { ModelProfile, ComplianceFindings, TriggeredRule, AppliedArticle } from "./types";
 import { EU_AI_ACT_RULES, evaluateRule } from "./rules";
+import { EU_AI_ACT_ARTICLES } from "./euAiAct";
 
 export function auditModel(profile: ModelProfile): ComplianceFindings {
   const triggeredRules: TriggeredRule[] = [];
@@ -12,6 +13,7 @@ export function auditModel(profile: ModelProfile): ComplianceFindings {
         explanation: rule.explanation,
         citations: rule.citations,
         riskContribution: rule.riskContribution,
+        regulation_refs: rule.regulation_refs,
       });
     }
   }
@@ -19,6 +21,7 @@ export function auditModel(profile: ModelProfile): ComplianceFindings {
   const riskClassification = determineRiskClassification(triggeredRules);
   const confidenceScore = calculateConfidenceScore(triggeredRules);
   const relevantArticles = extractUniqueArticles(triggeredRules);
+  const appliedArticles = extractAppliedArticles(triggeredRules);
   const statusFlag = determineStatusFlag(riskClassification, triggeredRules);
 
   return {
@@ -26,9 +29,54 @@ export function auditModel(profile: ModelProfile): ComplianceFindings {
     confidenceScore,
     applicableRegulation: "EU AI Act",
     relevantArticles,
+    appliedArticles,
     statusFlag,
     triggeredRules,
   };
+}
+
+function extractAppliedArticles(triggeredRules: TriggeredRule[]): AppliedArticle[] {
+  const articleMap = new Map<string, { triggeringRuleIds: string[] }>();
+
+  for (const rule of triggeredRules) {
+    for (const ref of rule.regulation_refs) {
+      const articleKey = ref.article;
+      if (!articleMap.has(articleKey)) {
+        articleMap.set(articleKey, { triggeringRuleIds: [] });
+      }
+      const entry = articleMap.get(articleKey)!;
+      if (!entry.triggeringRuleIds.includes(rule.id)) {
+        entry.triggeringRuleIds.push(rule.id);
+      }
+    }
+  }
+
+  const appliedArticles: AppliedArticle[] = [];
+  
+  for (const [article, data] of articleMap.entries()) {
+    const articleDetails = EU_AI_ACT_ARTICLES[article];
+    if (articleDetails) {
+      appliedArticles.push({
+        article,
+        title: articleDetails.title,
+        summary: articleDetails.summary,
+        triggeringRuleIds: data.triggeringRuleIds,
+      });
+    } else {
+      appliedArticles.push({
+        article,
+        title: article,
+        summary: "Reference from triggered compliance rule.",
+        triggeringRuleIds: data.triggeringRuleIds,
+      });
+    }
+  }
+
+  return appliedArticles.sort((a, b) => {
+    const numA = parseInt(a.article.match(/\d+/)?.[0] || "0", 10);
+    const numB = parseInt(b.article.match(/\d+/)?.[0] || "0", 10);
+    return numA - numB;
+  });
 }
 
 function determineRiskClassification(

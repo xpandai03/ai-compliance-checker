@@ -1,7 +1,9 @@
-import { FileText, Scale, ShieldAlert, BookOpen, HelpCircle, Info, CheckCircle2, Database } from "lucide-react";
+import { useState } from "react";
+import { FileText, Scale, ShieldAlert, BookOpen, HelpCircle, Info, CheckCircle2, Database, ChevronDown, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import AuditStepCard from "./audit-step-card";
-import type { ModelProfile, ComplianceFindings, ProviderMetadata } from "@/lib/types";
+import type { ModelProfile, ComplianceFindings, ProviderMetadata, AppliedArticle } from "@/lib/types";
 import type { AuditPhase } from "@/pages/home";
 import { formatConfidence, getSourceLabel } from "@/lib/providerMetadata";
 
@@ -16,6 +18,69 @@ const phaseOrder: AuditPhase[] = ["profile", "metadata", "rules", "classificatio
 
 function isPhaseAtLeast(current: AuditPhase, target: AuditPhase): boolean {
   return phaseOrder.indexOf(current) >= phaseOrder.indexOf(target);
+}
+
+interface ArticleLegalBasisProps {
+  appliedArticle: AppliedArticle;
+  triggeredRules: ComplianceFindings["triggeredRules"];
+}
+
+function ArticleLegalBasis({ appliedArticle, triggeredRules }: ArticleLegalBasisProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  
+  const relevantRules = triggeredRules.filter(rule => 
+    appliedArticle.triggeringRuleIds.includes(rule.id)
+  );
+
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <div className="border border-border rounded-md overflow-visible">
+        <CollapsibleTrigger className="flex items-center justify-between w-full p-2 text-left hover-elevate active-elevate-2" data-testid={`article-trigger-${appliedArticle.article}`}>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Badge variant="outline" className="text-xs shrink-0">
+              {appliedArticle.article}
+            </Badge>
+            <span className="text-sm text-muted-foreground truncate">
+              {appliedArticle.title}
+            </span>
+          </div>
+          {isOpen ? (
+            <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+          ) : (
+            <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+          )}
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="px-3 pb-3 space-y-3 border-t border-border pt-2">
+            <div>
+              <p className="text-xs font-medium text-foreground mb-1">Summary</p>
+              <p className="text-xs text-muted-foreground">
+                {appliedArticle.summary}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-foreground mb-1">Triggering Rules</p>
+              <div className="space-y-1">
+                {relevantRules.map(rule => (
+                  <div key={rule.id} className="flex items-start gap-2">
+                    <Badge 
+                      variant={rule.riskContribution === "high" ? "destructive" : "outline"} 
+                      className="text-xs shrink-0 mt-0.5"
+                    >
+                      {rule.riskContribution}
+                    </Badge>
+                    <div>
+                      <p className="text-xs text-muted-foreground">{rule.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </CollapsibleContent>
+      </div>
+    </Collapsible>
+  );
 }
 
 export default function AuditTimeline({ modelProfile, findings, auditPhase, providerMetadata }: AuditTimelineProps) {
@@ -211,7 +276,7 @@ export default function AuditTimeline({ modelProfile, findings, auditPhase, prov
         )}
 
         {isPhaseAtLeast(auditPhase, "mapping") && (
-          <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="animate-in fade-in slide-in-from-bottom-2 duration-300" data-testid="step-regulatory-mapping">
             <AuditStepCard
               stepNumber={5}
               title="Regulatory Mapping Applied"
@@ -221,15 +286,22 @@ export default function AuditTimeline({ modelProfile, findings, auditPhase, prov
                 variant: "outline",
               }}
             >
-              <div className="space-y-2">
-                <p>Mapped triggered rules to relevant regulatory articles.</p>
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {findings.relevantArticles.map((article) => (
-                    <Badge key={article} variant="outline" className="text-xs">
-                      {article}
-                    </Badge>
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  This risk classification is grounded in explicit EU AI Act articles, based on the triggered deployment and model type rules.
+                </p>
+                <div className="space-y-2">
+                  {(findings.appliedArticles || []).map((appliedArticle) => (
+                    <ArticleLegalBasis
+                      key={appliedArticle.article}
+                      appliedArticle={appliedArticle}
+                      triggeredRules={findings.triggeredRules}
+                    />
                   ))}
                 </div>
+                <p className="text-xs text-muted-foreground italic mt-3">
+                  This system applies deterministic rules derived from the EU AI Act. It does not interpret or replace legal advice.
+                </p>
               </div>
             </AuditStepCard>
           </div>
@@ -259,7 +331,7 @@ export default function AuditTimeline({ modelProfile, findings, auditPhase, prov
                 This metadata reflects information available from provider APIs and public documentation. It does not include training data provenance or regulatory interpretation.
               </p>
               <p className="text-sm italic text-muted-foreground">
-                This prototype implements a simplified EU AI Act risk classification for demonstration purposes only.
+                Regulatory grounding reflects explicit mappings between deterministic rules and EU AI Act articles. This system does not perform legal interpretation or provide legal advice.
               </p>
             </div>
           </div>
