@@ -1,0 +1,222 @@
+**🔧 REPLIT AGENT PROMPT --- EU AI Act Article Grounding (Deterministic)**
+------------------------------------------------------------------------
+
+**Objective**
+
+Ground the existing deterministic compliance rules in **explicit EU AI Act articles**, so the system can prove *which legal provisions justify each risk outcome*.
+
+Do **not** introduce free-form legal reasoning or LLM interpretation.
+
+This is **traceability**, not legal analysis.
+
+* * * * *
+
+**📐 REQUIRED IMPLEMENTATION PLAN (FOLLOW EXACTLY)**
+----------------------------------------------------
+
+* * * * *
+
+### **STEP 1 --- Create an EU AI Act Reference Corpus (STATIC, SAFE)**
+
+Create a new file:
+
+```
+client/src/lib/euAiAct.ts
+```
+
+Define a **minimal, authoritative reference object** containing:
+
+-   Article number
+
+-   Official title
+
+-   Short neutral description (summary, not interpretation)
+
+Example:
+
+```
+export const EU_AI_ACT_ARTICLES = {
+  "Article 6": {
+    title: "Classification of high-risk AI systems",
+    summary:
+      "Defines criteria under which AI systems are classified as high-risk, including intended purpose and deployment context."
+  },
+  "Article 52": {
+    title: "Transparency obligations for certain AI systems",
+    summary:
+      "Requires transparency obligations for AI systems that interact with humans or generate synthetic content."
+  },
+  "Article 28b": {
+    title: "Obligations for providers of general-purpose AI models",
+    summary:
+      "Defines obligations applicable to providers of general-purpose and foundation AI models."
+  }
+}
+```
+
+⚠️ Do NOT paste full legal text.
+
+⚠️ Do NOT summarize in a way that implies legal judgment.
+
+* * * * *
+
+### **STEP 2 --- Extend Rules to Include Explicit Article References**
+
+Modify your existing rules file (e.g. rules.ts) so **each rule includes regulation grounding**.
+
+Example rule shape:
+
+```
+{
+  id: "EU-AIA-PUBLIC-DEPLOYMENT",
+  description: "AI system deployed to the general public",
+  risk: "HIGH",
+  conditions: {
+    user_type: "General Public"
+  },
+  regulation_refs: [
+    {
+      regulation: "EU AI Act",
+      article: "Article 6"
+    }
+  ]
+}
+```
+
+Rules MUST:
+
+-   Reference one or more articles
+
+-   Never contain legal reasoning
+
+-   Represent **policy logic only**
+
+* * * * *
+
+### **STEP 3 --- Propagate Article References Through the Audit Result**
+
+Update the output of auditModel() to include:
+
+```
+applied_articles: string[]
+```
+
+This list must be:
+
+-   Derived from triggered_rules[].regulation_refs
+
+-   Deduplicated
+
+-   Ordered consistently
+
+Do NOT infer articles dynamically.
+
+* * * * *
+
+### **STEP 4 --- Update the Audit Trail UI (Right Pane)**
+
+In **Step 5: Regulatory Mapping Applied**, replace generic labels with:
+
+-   Article badges (e.g. Article 6, Article 28b)
+
+-   Tooltip or expandable panel showing:
+
+    -   Article title
+
+    -   Neutral summary
+
+    -   "Rule(s) that triggered this article"
+
+Example UI copy:
+
+> "This risk classification is grounded in EU AI Act Article 6, based on the triggered deployment and model type rules."
+
+* * * * *
+
+### **STEP 5 --- Add a "Legal Basis" Inspector (Read-Only)**
+
+Under each article badge, allow users to expand:
+
+**Legal Basis**
+
+-   Article title
+
+-   Summary
+
+-   Triggering rules (IDs + descriptions)
+
+Explicitly label:
+
+> "This system applies deterministic rules derived from the EU AI Act. It does not interpret or replace legal advice."
+
+* * * * *
+
+### **STEP 6 --- Preserve & Strengthen Disclaimers**
+
+Add or preserve the following disclaimer at the bottom of the audit trail:
+
+> "Regulatory grounding reflects explicit mappings between deterministic rules and EU AI Act articles. This system does not perform legal interpretation or provide legal advice."
+
+Do NOT remove existing disclaimers.
+
+* * * * *
+
+**🚫 EXPLICIT NON-GOALS (DO NOT IMPLEMENT)**
+--------------------------------------------
+
+-   No LLM reasoning over regulation text
+
+-   No full EU AI Act ingestion
+
+-   No RAG
+
+-   No "does this violate the law?" answers
+
+-   No compliance guarantees
+
+* * * * *
+
+**✅ VERIFICATION CHECKLIST**
+----------------------------
+
+After implementation:
+
+-   Every triggered rule maps to ≥1 EU AI Act article
+
+-   Every displayed article is traceable to ≥1 triggered rule
+
+-   Article summaries are neutral and factual
+
+-   No UI text implies legal judgment
+
+-   Changing inputs changes which articles appear
+
+-   The system remains deterministic
+
+* * * * *
+
+**🎯 WHY THIS MATTERS**
+-----------------------
+
+After this change, you can truthfully say:
+
+> "Each compliance outcome is explicitly grounded in specific EU AI Act articles, with a traceable audit path from input → rule → regulation."
+
+That's **enterprise-credible compliance software**.
+
+* * * * *
+
+**NEXT (OPTIONAL, NOT TONIGHT)**
+--------------------------------
+
+Later phases may include:
+
+-   Full article text retrieval (read-only)
+
+-   Versioned regulation updates
+
+-   Jurisdiction toggles (EU / UK / US)
+
+But this step alone makes the product **legitimate and sellable**.
+
+* * * * *
