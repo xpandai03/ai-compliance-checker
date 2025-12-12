@@ -112,10 +112,10 @@ export default function FindingsPanel({ findings, modelProfile }: FindingsPanelP
             <Info className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
             <div className="space-y-2">
               <p className="text-sm italic text-muted-foreground" data-testid="text-disclaimer">
-                This prototype implements a simplified EU AI Act risk classification for demonstration purposes only.
+                These findings are mocked for demo purposes. No real compliance logic is executed.
               </p>
               <p className="text-sm italic text-muted-foreground" data-testid="text-disclaimer-2">
-                No real compliance logic is executed. This is not legal advice.
+                This prototype implements a simplified EU AI Act risk classification for demonstration purposes only.
               </p>
             </div>
           </div>
