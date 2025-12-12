@@ -1,0 +1,189 @@
+**Objective**
+
+Refactor the existing UI into a **two-pane audit layout** that visually explains the deterministic compliance process, without changing any underlying business logic.
+
+Do **not** modify the rules engine, audit logic, or data structures unless explicitly required for UI wiring.
+
+* * * * *
+
+### **High-level layout requirements**
+
+Convert the Findings page into a **two-pane layout**:
+
+-   **Left pane** = Inputs / Questions
+
+-   **Right pane** = Audit trail / Findings timeline
+
+The layout should be responsive but optimized for desktop.
+
+* * * * *
+
+### **LEFT PANE BEHAVIOR**
+
+#### **Before scan (no findings yet)**
+
+Show:
+
+-   Existing **Model Intake form**
+
+-   "Run Compliance Scan" CTA
+
+-   No explainability content
+
+#### **After scan (findings exist)**
+
+Replace intake form with:
+
+-   **Explainability / Questions panel**
+
+-   Pre-seeded questions generated from triggered_rules
+
+-   Keep it read-only (no free-form AI chat)
+
+Label this section clearly as:
+
+> "Explain this result"
+
+The left pane should **never** display final verdicts or risk levels --- it is for interaction only.
+
+* * * * *
+
+### **RIGHT PANE BEHAVIOR (CORE CHANGE)**
+
+Create a **scrollable audit timeline** composed of stacked cards.
+
+Each card represents a step in the deterministic audit process.
+
+#### **Required audit steps (in this order)**
+
+1.  **Model Profile Created**
+
+    -   Display normalized model inputs
+
+    -   Provider, use case, user type
+
+    -   Icon: document / checklist
+
+2.  **Risk Rules Evaluated**
+
+    -   Show:
+
+        -   Total rules evaluated
+
+        -   Number of triggered rules
+
+    -   Expandable section:
+
+        -   List triggered rule IDs + descriptions
+
+    -   Icon: scales / filter
+
+3.  **Risk Classification Determined**
+
+    -   Show:
+
+        -   Final risk category
+
+        -   Confidence score
+
+    -   Emphasize "highest-risk-wins" logic in text
+
+    -   Icon: warning / shield
+
+4.  **Regulatory Mapping Applied**
+
+    -   Show:
+
+        -   EU AI Act articles mapped
+
+    -   No legal text retrieval yet
+
+    -   Icon: book / law
+
+5.  **Explainability Ready**
+
+    -   Static confirmation:
+
+        -   "System ready to answer questions about this result"
+
+    -   Icon: info / question mark
+
+* * * * *
+
+### **UI RULES (IMPORTANT)**
+
+-   Do **not** add fake AI "thinking" animations
+
+-   Do **not** stream text
+
+-   Do **not** slow down the actual audit logic
+
+-   Timeline steps can appear immediately or with small UI-only delays
+
+-   All content must reflect **real computed data**, not mocks
+
+* * * * *
+
+### **STATE MANAGEMENT**
+
+Reuse existing state:
+
+-   modelProfile
+
+-   findings (output of auditModel())
+
+Add **UI-only state** if needed:
+
+-   e.g. auditStepsVisible for progressive reveal
+
+Do not add backend dependencies.
+
+* * * * *
+
+### **COPY & DISCLAIMERS**
+
+Preserve all existing disclaimers.
+
+Add one additional line near the audit timeline header:
+
+> "This view shows a deterministic audit trail of how the compliance result was produced."
+
+Do **not** claim legal advice or regulatory certification.
+
+* * * * *
+
+### **FILES YOU MAY MODIFY**
+
+-   client/src/pages/findings.tsx
+
+-   client/src/components/findings-panel.tsx
+
+-   Create new components if helpful:
+
+    -   AuditTimeline.tsx
+
+    -   AuditStepCard.tsx
+
+Do not modify:
+
+-   audit.ts
+
+-   rules.ts
+
+-   ModelProfile schema
+
+* * * * *
+
+### **Final instruction**
+
+Prioritize:
+
+-   Clarity over polish
+
+-   Trust over flash
+
+-   Explainability over abstraction
+
+This UI should make it obvious that:
+
+**the system shows its work.**
