@@ -1,0 +1,166 @@
+**Goal:**
+
+Build a lightweight **mock web app** that demonstrates the UX flow and architectural thinking for an AI compliance scanner. This is a **demo-only mock**, not a real compliance engine.
+
+* * * * *
+
+### **High-level requirements**
+
+Create a simple web app (React or Next.js) with **two main screens**:
+
+1.  **Model Intake (Activation Screen)**
+
+2.  **Findings + Explainability Screen**
+
+This app should clearly show:
+
+-   Deterministic findings first
+
+-   Explanation / Q&A second
+
+-   Chat does NOT influence or change findings
+
+No real AI logic. No real RAG. No external APIs.
+
+* * * * *
+
+### **Screen 1: Model Intake (Activation)**
+
+Create a form with the following fields:
+
+-   Model Name (text input)
+
+-   Model Provider (dropdown: OpenAI, Anthropic, Open Source, Custom)
+
+-   Deployment Use Case (text input)
+
+-   User Type (dropdown: General Public, Internal, Enterprise)
+
+Button: **"Run Compliance Scan"**
+
+On submit:
+
+-   Construct a mock ModelProfile object in state
+
+-   Navigate to the Findings screen
+
+-   No validation beyond basic required fields
+
+Example mock object (hardcoded structure is fine):
+
+```
+{
+  modelName: "GPT-4o",
+  provider: "OpenAI",
+  useCase: "Customer support chatbot",
+  userType: "General Public"
+}
+```
+
+* * * * *
+
+### **Screen 2: Findings (Deterministic Output -- Mocked)**
+
+Display a **static, mocked compliance result** based on the submitted model profile.
+
+Always show:
+
+-   **Risk Classification:** High Risk
+
+-   **Confidence Score:** 0.78
+
+-   **Applicable Regulation:** EU AI Act
+
+-   **Relevant Articles:** Article 6, Article 9, Article 10
+
+-   **Status Flag:** Needs Manual Review
+
+Add a short disclaimer text:
+
+> "These findings are mocked for demo purposes. No real compliance logic is executed."
+
+This screen represents the **authoritative verdict**.
+
+* * * * *
+
+### **Explainability / Q&A Section (same screen)**
+
+Below the findings, include a **read-only chat-style explanation panel**.
+
+Features:
+
+-   Pre-seeded clickable questions:
+
+    -   "Why is this classified as high risk?"
+
+    -   "Why does Article 6 apply?"
+
+    -   "What factors contributed to this classification?"
+
+-   When clicked, show **mocked answers** with:
+
+    -   Clear explanations
+
+    -   Fake citations (e.g. "EU AI Act, Article 6(2)")
+
+Important rules:
+
+-   Chat responses are **static / templated**
+
+-   Chat does NOT modify findings
+
+-   Chat is explain-only
+
+Add a label above chat:
+
+> "Explainability & Evidence (Read-only)"
+
+* * * * *
+
+### **Technical constraints**
+
+-   Keep styling minimal and clean
+
+-   No authentication
+
+-   No backend required
+
+-   Use client-side state only
+
+-   Clearly separate components:
+
+    -   ModelIntake
+
+    -   FindingsPanel
+
+    -   ExplainabilityPanel
+
+Code should be **easy to read**, not clever.
+
+* * * * *
+
+### **Explicit non-goals (do NOT implement)**
+
+-   No real RAG
+
+-   No OpenAI / Anthropic calls
+
+-   No MCP
+
+-   No real compliance rules
+
+-   No database
+
+-   No claims of legal correctness
+
+This is a **UX + architecture demo only**.
+
+* * * * *
+
+### **Final instruction**
+
+Prioritize **clarity of flow and intent** over features.
+
+This app is meant to support a **first client call**, not production use.
+
+* * * * *
