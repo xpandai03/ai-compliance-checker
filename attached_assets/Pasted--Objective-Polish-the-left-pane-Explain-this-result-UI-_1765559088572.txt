@@ -1,0 +1,205 @@
+**Objective**
+
+Polish the **left pane ("Explain this result") UI** to improve readability, hierarchy, spacing, and perceived quality, while preserving all existing functionality.
+
+This is a **visual + layout cleanup only**.
+
+Do **not** change data flow, explainability logic, or audit rules.
+
+* * * * *
+
+**Design goals (follow strictly)**
+----------------------------------
+
+-   Clear visual hierarchy
+
+-   Professional compliance-tool look (not chatty, not consumer)
+
+-   Intentional spacing and alignment
+
+-   No "floating" or awkwardly centered elements
+
+-   Left pane should feel like a **guided inspection panel**
+
+* * * * *
+
+**REQUIRED UI CHANGES**
+-----------------------
+
+### **1\. Fix header hierarchy and spacing**
+
+Current issues:
+
+-   Header text feels vertically crowded
+
+-   Subtitle competes visually with content
+
+#### **Update header layout to:**
+
+**Title**
+
+> Explain this result
+
+**Subtitle (smaller, muted)**
+
+> Read-only explanations grounded in the audit trail
+
+Add consistent padding:
+
+-   Top padding: 24--32px
+
+-   Bottom padding before questions: 16--20px
+
+* * * * *
+
+### **2\. Align action controls ("New Scan") properly**
+
+Move **"New Scan"** into a clearly defined **utility row** below the header.
+
+-   Align it left
+
+-   Use secondary button styling
+
+-   Add subtle divider below utilities
+
+Example layout:
+
+```
+Explain this result
+Read-only explanations grounded in the audit trail
+
+[ New Scan ]
+
+--------------------------------
+```
+
+This avoids visual clutter near the title.
+
+* * * * *
+
+### **3\. Improve question list layout**
+
+Current issues:
+
+-   Buttons feel too tall and loosely stacked
+
+-   Text alignment feels inconsistent
+
+#### **Update question list to:**
+
+-   Compact card or list style
+
+-   Left-aligned text
+
+-   Consistent vertical rhythm (8--12px gap)
+
+-   Subtle hover state
+
+-   No oversized padding
+
+Each question should look like a **selectable inspection item**, not a chat prompt.
+
+* * * * *
+
+### **4\. Replace empty-state icon + copy positioning**
+
+Current issue:
+
+-   Icon + text feels vertically centered and floating
+
+#### **Change empty state to:**
+
+-   Top-aligned (not vertically centered)
+
+-   Subtle icon (smaller)
+
+-   Clear instructional copy
+
+Example copy:
+
+> Select a question above to view the explanation.
+
+> Explanations are generated directly from triggered audit rules.
+
+This reinforces determinism and trust.
+
+* * * * *
+
+### **5\. Constrain width + improve text wrapping**
+
+-   Ensure the left pane content has a max-width (e.g. 420--480px)
+
+-   Prevent overly wide text blocks
+
+-   Improve readability on large screens
+
+* * * * *
+
+### **6\. Visual consistency with right pane**
+
+-   Match card border radius
+
+-   Match background tone
+
+-   Match typography scale
+
+-   Avoid "chat UI" affordances (no bubbles, no avatars)
+
+This is an **inspection panel**, not a conversation.
+
+* * * * *
+
+**Files you may modify**
+------------------------
+
+-   client/src/components/explainability-panel.tsx
+
+-   client/src/pages/findings.tsx
+
+-   Shared layout or container styles if needed
+
+Do NOT modify:
+
+-   Audit logic
+
+-   Rules
+
+-   Provider metadata logic
+
+-   Explainability content generation
+
+* * * * *
+
+**Copy constraints (important)**
+--------------------------------
+
+-   Do NOT use "AI is thinking", "assistant", or conversational language
+
+-   Prefer:
+
+    -   "Explanation"
+
+    -   "Derived from"
+
+    -   "Based on triggered rules"
+
+This is a compliance tool, not a chatbot.
+
+* * * * *
+
+**Final verification checklist**
+--------------------------------
+
+After changes:
+
+-   Left pane feels visually balanced
+
+-   Header, actions, and content are clearly separated
+
+-   No elements feel vertically "floating"
+
+-   Questions feel like audit inspection items
+
+-   Empty state feels intentional and instructive
+
+-   UI tone matches enterprise / compliance expectations

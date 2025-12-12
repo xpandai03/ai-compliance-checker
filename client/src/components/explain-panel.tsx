@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { ChevronRight, MessageSquare, BookOpen, RotateCcw } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChevronRight, BookOpen, RotateCcw, FileText, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import type { ExplainabilityQuestion } from "@/lib/types";
 
 interface ExplainPanelProps {
@@ -10,130 +10,136 @@ interface ExplainPanelProps {
   onReset: () => void;
 }
 
-interface ChatMessage {
-  type: "question" | "answer";
-  content: string;
+interface SelectedExplanation {
+  question: string;
+  answer: string;
   citations?: string[];
 }
 
 export default function ExplainPanel({ questions, onReset }: ExplainPanelProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [askedQuestions, setAskedQuestions] = useState<Set<string>>(new Set());
+  const [selectedExplanation, setSelectedExplanation] = useState<SelectedExplanation | null>(null);
+  const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null);
 
   const handleQuestionClick = (question: ExplainabilityQuestion) => {
-    if (askedQuestions.has(question.id)) return;
-
-    setAskedQuestions((prev) => new Set(Array.from(prev).concat(question.id)));
-    setMessages((prev) => [
-      ...prev,
-      { type: "question", content: question.question },
-      { type: "answer", content: question.answer, citations: question.citations },
-    ]);
+    setSelectedQuestionId(question.id);
+    setSelectedExplanation({
+      question: question.question,
+      answer: question.answer,
+      citations: question.citations,
+    });
   };
 
-  const availableQuestions = questions.filter((q) => !askedQuestions.has(q.id));
-
   return (
-    <Card className="border border-border h-full flex flex-col">
-      <CardHeader className="pb-4 border-b border-border shrink-0">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-3">
-            <MessageSquare className="w-5 h-5 text-muted-foreground" />
-            <div>
-              <CardTitle className="text-lg font-semibold">Explain this result</CardTitle>
-              <CardDescription className="text-sm text-muted-foreground mt-0.5">
-                Read-only explanations for the compliance assessment
-              </CardDescription>
-            </div>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onReset}
-            className="gap-2 text-muted-foreground"
-            data-testid="button-new-scan"
-          >
-            <RotateCcw className="w-4 h-4" />
-            New Scan
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent className="pt-6 flex-1 overflow-y-auto space-y-6">
-        {availableQuestions.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-3">
-              Click a question to learn more
-            </p>
-            {availableQuestions.map((question) => (
+    <div className="h-full flex flex-col border border-border rounded-md bg-card">
+      <div className="pt-6 px-5 pb-4 shrink-0">
+        <h2 className="text-lg font-semibold text-foreground">
+          Explain this result
+        </h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          Read-only explanations grounded in the audit trail
+        </p>
+      </div>
+
+      <div className="px-5 pb-4 shrink-0">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onReset}
+          className="gap-2"
+          data-testid="button-new-scan"
+        >
+          <RotateCcw className="w-3.5 h-3.5" />
+          New Scan
+        </Button>
+      </div>
+
+      <Separator />
+
+      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">
+            Inspection Items
+          </p>
+          {questions.map((question) => {
+            const isSelected = selectedQuestionId === question.id;
+            return (
               <Button
                 key={question.id}
-                variant="outline"
-                className="w-full justify-between text-left h-auto py-3 px-4"
+                variant={isSelected ? "secondary" : "ghost"}
+                size="sm"
                 onClick={() => handleQuestionClick(question)}
+                className={`w-full justify-between text-left ${
+                  isSelected ? "bg-accent" : ""
+                }`}
                 data-testid={`button-question-${question.id}`}
               >
-                <span className="text-sm font-normal">{question.question}</span>
-                <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground" />
+                <span className="font-normal truncate text-left">{question.question}</span>
+                <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground ml-2" />
               </Button>
-            ))}
-          </div>
-        )}
+            );
+          })}
+        </div>
 
-        {messages.length > 0 && (
-          <>
-            {availableQuestions.length > 0 && <Separator />}
-            <div className="space-y-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Conversation
-              </p>
-              {messages.map((message, index) => (
-                <div
-                  key={index}
-                  className={message.type === "question" ? "ml-8" : "mr-0"}
-                >
-                  {message.type === "question" ? (
-                    <div className="p-3 rounded-md bg-primary/10 border border-primary/20" data-testid={`text-question-${index}`}>
-                      <p className="text-sm font-medium">{message.content}</p>
-                    </div>
-                  ) : (
-                    <div className="p-4 rounded-md border border-border bg-card" data-testid={`text-answer-${index}`}>
-                      <p className="text-sm leading-relaxed">{message.content}</p>
-                      {message.citations && message.citations.length > 0 && (
-                        <div className="mt-4 pt-3 border-t border-border">
-                          <div className="flex items-center gap-2 mb-2">
-                            <BookOpen className="w-3 h-3 text-muted-foreground" />
-                            <p className="text-xs font-medium text-muted-foreground">Citations</p>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {message.citations.map((citation, citationIndex) => (
-                              <span
-                                key={citationIndex}
-                                className="text-xs text-primary underline underline-offset-2"
-                                data-testid={`text-citation-${index}-${citationIndex}`}
-                              >
-                                {citation}
-                              </span>
-                            ))}
-                          </div>
+        <Separator />
+
+        <div className="space-y-3">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Explanation
+          </p>
+
+          {selectedExplanation ? (
+            <div className="space-y-4" data-testid="explanation-content">
+              <div className="p-4 rounded-md border border-border bg-muted/30">
+                <div className="flex items-start gap-3">
+                  <FileText className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                  <div className="space-y-3">
+                    <p className="text-sm font-medium text-foreground">
+                      {selectedExplanation.question}
+                    </p>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {selectedExplanation.answer}
+                    </p>
+                    {selectedExplanation.citations && selectedExplanation.citations.length > 0 && (
+                      <div className="pt-3 border-t border-border">
+                        <div className="flex items-center gap-2 mb-2">
+                          <BookOpen className="w-3 h-3 text-muted-foreground" />
+                          <p className="text-xs font-medium text-muted-foreground">Derived from</p>
                         </div>
-                      )}
-                    </div>
-                  )}
+                        <div className="flex flex-wrap gap-1.5">
+                          {selectedExplanation.citations.map((citation, citationIndex) => (
+                            <Badge
+                              key={citationIndex}
+                              variant="outline"
+                              className="text-xs"
+                              data-testid={`text-citation-${citationIndex}`}
+                            >
+                              {citation}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              ))}
+              </div>
             </div>
-          </>
-        )}
-
-        {messages.length === 0 && (
-          <div className="text-center py-8">
-            <MessageSquare className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">
-              Click a question above to see the explanation
-            </p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          ) : (
+            <div className="py-4" data-testid="explanation-empty-state">
+              <div className="flex items-start gap-3 text-muted-foreground">
+                <Info className="w-4 h-4 mt-0.5 shrink-0" />
+                <div className="space-y-1.5">
+                  <p className="text-sm">
+                    Select a question above to view the explanation.
+                  </p>
+                  <p className="text-xs text-muted-foreground/80">
+                    Explanations are generated directly from triggered audit rules.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
