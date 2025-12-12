@@ -2,9 +2,9 @@
 
 ## Overview
 
-This is a lightweight web application demonstrating the UX flow for an AI compliance scanner. The app showcases a two-screen workflow: a model intake form where users submit AI model details, and a findings screen that displays deterministic compliance assessment results against EU AI Act regulations.
+This is a lightweight web application demonstrating the UX flow for an AI compliance scanner. The app showcases a **two-pane audit layout**: the left pane contains model intake or explainability controls, while the right pane displays a deterministic audit timeline showing exactly how compliance findings were computed.
 
-The app now implements a **rules-based compliance engine** with 6 EU AI Act-inspired rules. Findings are computed deterministically based on the model profile, not hardcoded mock data. Explainability questions are generated dynamically from triggered rules.
+The app implements a **rules-based compliance engine** with 6 EU AI Act-inspired rules. Findings are computed deterministically based on the model profile. Explainability questions are generated dynamically from triggered rules.
 
 **Important**: This is a demo/prototype for demonstration purposes only - not legal advice.
 
@@ -16,16 +16,29 @@ Preferred communication style: Simple, everyday language.
 
 ### Frontend Architecture
 - **Framework**: React with TypeScript, using Vite as the build tool
-- **Routing**: Wouter for client-side routing (lightweight alternative to React Router)
-- **State Management**: React useState for local component state; form state lifted to App.tsx and passed as props
+- **Routing**: Wouter for client-side routing (single-page app at `/`)
+- **State Management**: React useState in `home.tsx` for modelProfile and findings
 - **UI Components**: shadcn/ui component library built on Radix UI primitives with Tailwind CSS styling
 - **Form Handling**: React Hook Form with Zod schema validation
 - **Data Fetching**: TanStack Query (React Query) configured but minimally used since data is computed client-side
 
-### Key Application Flow
-1. **Model Intake Screen** (`/`): Collects model name, provider, use case, and user type via a validated form
-2. **Findings Screen** (`/findings`): Displays computed compliance findings and dynamic explainability Q&A
-3. State flows from intake form → App.tsx (stores ModelProfile) → auditModel() → Findings page
+### Two-Pane Layout Architecture
+The main page (`client/src/pages/home.tsx`) implements a responsive two-pane layout:
+
+**Left Pane (420px on desktop):**
+- Before scan: `IntakeForm` component for model details input
+- After scan: `ExplainPanel` component for read-only explainability Q&A
+
+**Right Pane:**
+- Before scan: Placeholder with "Audit Trail" message
+- After scan: `AuditTimeline` component with 5 deterministic audit steps
+
+### Audit Timeline Steps
+1. **Model Profile Created** - Displays normalized model inputs
+2. **Risk Rules Evaluated** - Shows triggered rules count with expandable details
+3. **Risk Classification Determined** - Final risk category with "highest-risk-wins" explanation
+4. **Regulatory Mapping Applied** - EU AI Act articles mapped to findings
+5. **Explainability Ready** - Confirms system ready for questions
 
 ### Compliance Engine Architecture
 - **Rules Definition** (`client/src/lib/rules.ts`): 6 EU AI Act-inspired rules with:
@@ -64,11 +77,18 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### December 2024 - Two-Pane Audit Layout
+- Refactored from two-page flow to single-page two-pane layout
+- Created `AuditTimeline` and `AuditStepCard` components for audit trail visualization
+- Created `IntakeForm` and `ExplainPanel` components for left pane
+- Added "New Scan" button to reset and start fresh
+- Added deterministic audit trail disclaimer
+- All state managed in `home.tsx`, no routing changes needed
+
 ### December 2024 - Rules Engine Implementation
 - Added `client/src/lib/rules.ts` with 6 EU AI Act-inspired compliance rules
 - Added `client/src/lib/audit.ts` with pure `auditModel()` function
 - Extended `ComplianceFindings` type to include `triggeredRules` array
-- Replaced mock findings with computed findings in `findings.tsx`
 - Updated explainability panel to generate questions from triggered rules
 - Added prototype disclaimer alongside existing demo disclaimer
 
