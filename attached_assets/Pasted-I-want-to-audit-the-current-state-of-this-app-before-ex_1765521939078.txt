@@ -1,0 +1,73 @@
+I want to audit the current state of this app before extending it.
+Do NOT add new features yet.
+
+Please answer the following questions clearly and concisely, referencing actual files, functions, and data structures in the codebase.
+
+1. Model Intake & State
+	•	Where is the intake form data stored after submission?
+	•	Is there a single structured object representing the model (e.g. modelProfile)?
+	•	If not, where is this data fragmented across state/components?
+
+2. Findings Generation
+	•	When “Run Compliance Scan” is clicked, what function determines the findings?
+	•	Are the risk category, confidence, and applicable regulations hardcoded?
+	•	Is there any logic (rules, conditionals) that affect the output today?
+
+3. Risk Logic
+	•	Does any file currently resemble a risk engine or audit function?
+	•	If yes, where is it and what inputs/outputs does it have?
+	•	If no, confirm that findings are fully mocked.
+
+4. Explainability / Chat
+	•	How are explainability answers generated?
+	•	Are they static strings, templates, or dynamic?
+	•	Does the explainability layer read from any structured audit result?
+
+5. File Structure
+	•	List the key files/components involved in:
+	•	Intake
+	•	Findings display
+	•	Explainability
+	•	Identify which files would be the correct place to introduce:
+	•	a ModelProfile schema
+	•	a deterministic auditModel() function
+	•	a rules configuration file
+
+6. Safety Check
+	•	Confirm whether any part of the app currently claims or implies legal correctness.
+	•	If so, identify where disclaimers should be added or strengthened.
+
+Do not refactor yet.
+This is a read-only system analysis.
+
+⸻
+
+What this gets you (very important)
+
+Once the agent answers:
+	•	You’ll know exactly:
+	•	What’s mocked
+	•	What’s reusable
+	•	Where to insert real logic with minimal churn
+	•	You can then incrementally harden:
+	•	First the schema
+	•	Then the risk engine
+	•	Then explanation wiring
+
+This avoids the classic mistake of:
+
+“Throw it away and rebuild”
+
+⸻
+
+After the agent responds, here’s the upgrade path (preview)
+
+In order:
+	1.	Introduce a real ModelProfile object (no UI change)
+	2.	Replace mocked findings with a pure auditModel(profile) function
+	3.	Move risk rules into a JSON config
+	4.	Wire explainability to triggered_rules
+	5.	Add confidence scores
+	6.	(Optional later) Add citation snippets
+
+Each step is small, demo-safe, and reusable.
