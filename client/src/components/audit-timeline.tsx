@@ -1,13 +1,20 @@
 import { useState } from "react";
-import { FileText, Scale, ShieldAlert, BookOpen, HelpCircle, Info, CheckCircle2, Database, ChevronDown, ChevronRight, ExternalLink } from "lucide-react";
+import { FileText, Scale, ShieldAlert, BookOpen, HelpCircle, Info, CheckCircle2, Database, ChevronDown, ChevronRight, ExternalLink, Download } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import AuditStepCard from "./audit-step-card";
 import LegalTextViewer from "./legal-text-viewer";
 import type { ModelProfile, ComplianceFindings, ProviderMetadata, AppliedArticle } from "@/lib/types";
 import type { AuditPhase } from "@/pages/home";
 import { formatConfidence, getSourceLabel } from "@/lib/providerMetadata";
+import { generateComplianceReport, exportReportAsJSON, exportReportAsPDF } from "@/lib/report";
 
 interface AuditTimelineProps {
   modelProfile: ModelProfile;
@@ -110,6 +117,16 @@ export default function AuditTimeline({ modelProfile, findings, auditPhase, prov
     setTextViewerOpen(true);
   };
 
+  const handleExportJSON = () => {
+    const report = generateComplianceReport(modelProfile, findings, providerMetadata);
+    exportReportAsJSON(report, modelProfile.modelName);
+  };
+
+  const handleExportPDF = async () => {
+    const report = generateComplianceReport(modelProfile, findings, providerMetadata);
+    await exportReportAsPDF(report, modelProfile.modelName);
+  };
+
   const getRiskBadgeVariant = (risk: string): "default" | "secondary" | "destructive" | "outline" => {
     switch (risk) {
       case "High Risk":
@@ -127,16 +144,38 @@ export default function AuditTimeline({ modelProfile, findings, auditPhase, prov
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start gap-3 p-4 rounded-md border border-border bg-muted/30">
-        <CheckCircle2 className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-        <div>
-          <p className="text-sm font-medium text-foreground">
-            Audit completed deterministically in milliseconds.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            This timeline shows how the result was derived.
-          </p>
+      <div className="flex items-start justify-between gap-3 p-4 rounded-md border border-border bg-muted/30">
+        <div className="flex items-start gap-3">
+          <CheckCircle2 className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-foreground">
+              Audit completed deterministically in milliseconds.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              This timeline shows how the result was derived.
+            </p>
+          </div>
         </div>
+        {auditPhase === "done" && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2 shrink-0" data-testid="button-download-report">
+                <Download className="w-4 h-4" />
+                Download Report
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleExportPDF} data-testid="menu-download-pdf">
+                <FileText className="w-4 h-4 mr-2" />
+                Download as PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportJSON} data-testid="menu-download-json">
+                <FileText className="w-4 h-4 mr-2" />
+                Download as JSON
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
 
       <div className="space-y-3">
