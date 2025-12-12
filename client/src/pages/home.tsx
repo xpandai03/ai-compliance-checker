@@ -4,26 +4,38 @@ import IntakeForm from "@/components/intake-form";
 import ExplainPanel from "@/components/explain-panel";
 import AuditTimeline from "@/components/audit-timeline";
 import { auditModel, generateQuestionsFromRules } from "@/lib/audit";
-import type { ModelProfile, ComplianceFindings } from "@/lib/types";
+import { fetchProviderMetadata } from "@/lib/providerMetadata";
+import type { ModelProfile, ComplianceFindings, ProviderMetadata } from "@/lib/types";
 
-export type AuditPhase = "profile" | "rules" | "classification" | "mapping" | "done";
+export type AuditPhase = "profile" | "metadata" | "rules" | "classification" | "mapping" | "done";
 
 export default function HomePage() {
   const [modelProfile, setModelProfile] = useState<ModelProfile | null>(null);
   const [findings, setFindings] = useState<ComplianceFindings | null>(null);
   const [auditPhase, setAuditPhase] = useState<AuditPhase>("profile");
+  const [providerMetadata, setProviderMetadata] = useState<ProviderMetadata | null>(null);
 
-  const handleScan = (profile: ModelProfile) => {
-    setModelProfile(profile);
-    const computedFindings = auditModel(profile);
-    setFindings(computedFindings);
+  const handleScan = async (profile: ModelProfile) => {
     setAuditPhase("profile");
+    
+    const metadata = await fetchProviderMetadata(profile.provider, profile.modelName);
+    setProviderMetadata(metadata);
+    
+    const profileWithMetadata: ModelProfile = {
+      ...profile,
+      provider_metadata: metadata
+    };
+    
+    setModelProfile(profileWithMetadata);
+    const computedFindings = auditModel(profileWithMetadata);
+    setFindings(computedFindings);
   };
 
   const handleReset = () => {
     setModelProfile(null);
     setFindings(null);
     setAuditPhase("profile");
+    setProviderMetadata(null);
   };
 
   useEffect(() => {
@@ -32,10 +44,11 @@ export default function HomePage() {
     setAuditPhase("profile");
 
     const timers = [
-      setTimeout(() => setAuditPhase("rules"), 400),
-      setTimeout(() => setAuditPhase("classification"), 800),
-      setTimeout(() => setAuditPhase("mapping"), 1200),
-      setTimeout(() => setAuditPhase("done"), 1600),
+      setTimeout(() => setAuditPhase("metadata"), 400),
+      setTimeout(() => setAuditPhase("rules"), 800),
+      setTimeout(() => setAuditPhase("classification"), 1200),
+      setTimeout(() => setAuditPhase("mapping"), 1600),
+      setTimeout(() => setAuditPhase("done"), 2000),
     ];
 
     return () => timers.forEach(clearTimeout);
@@ -81,6 +94,7 @@ export default function HomePage() {
                     modelProfile={modelProfile} 
                     findings={findings} 
                     auditPhase={auditPhase}
+                    providerMetadata={providerMetadata}
                   />
                 </div>
               ) : (
