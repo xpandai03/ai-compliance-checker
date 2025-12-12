@@ -107,11 +107,18 @@ export default function FindingsPanel({ findings, modelProfile }: FindingsPanelP
           </Badge>
         </div>
 
-        <div className="p-4 rounded-md border border-border bg-muted/30 flex items-start gap-3">
-          <Info className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
-          <p className="text-sm italic text-muted-foreground" data-testid="text-disclaimer">
-            These findings are mocked for demo purposes. No real compliance logic is executed.
-          </p>
+        <div className="p-4 rounded-md border border-border bg-muted/30 space-y-2">
+          <div className="flex items-start gap-3">
+            <Info className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+            <div className="space-y-2">
+              <p className="text-sm italic text-muted-foreground" data-testid="text-disclaimer">
+                This prototype implements a simplified EU AI Act risk classification for demonstration purposes only.
+              </p>
+              <p className="text-sm italic text-muted-foreground" data-testid="text-disclaimer-2">
+                No real compliance logic is executed. This is not legal advice.
+              </p>
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>

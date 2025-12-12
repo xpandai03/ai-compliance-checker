@@ -3,7 +3,8 @@ import { Shield, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import FindingsPanel from "@/components/findings-panel";
 import ExplainabilityPanel from "@/components/explainability-panel";
-import { MOCK_FINDINGS, MOCK_QUESTIONS, type ModelProfile } from "@/lib/types";
+import { auditModel, generateQuestionsFromRules } from "@/lib/audit";
+import type { ModelProfile } from "@/lib/types";
 
 interface FindingsPageProps {
   modelProfile: ModelProfile | null;
@@ -25,6 +26,9 @@ export default function FindingsPage({ modelProfile }: FindingsPageProps) {
       </div>
     );
   }
+
+  const findings = auditModel(modelProfile);
+  const questions = generateQuestionsFromRules(findings.triggeredRules);
 
   return (
     <div className="min-h-screen bg-background">
@@ -50,8 +54,8 @@ export default function FindingsPage({ modelProfile }: FindingsPageProps) {
       </header>
 
       <main className="max-w-4xl mx-auto px-6 py-12 space-y-8">
-        <FindingsPanel findings={MOCK_FINDINGS} modelProfile={modelProfile} />
-        <ExplainabilityPanel questions={MOCK_QUESTIONS} />
+        <FindingsPanel findings={findings} modelProfile={modelProfile} />
+        <ExplainabilityPanel questions={questions} />
       </main>
     </div>
   );
