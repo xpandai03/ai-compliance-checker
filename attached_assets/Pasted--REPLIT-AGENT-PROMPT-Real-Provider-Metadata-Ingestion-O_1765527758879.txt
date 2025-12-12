@@ -1,0 +1,247 @@
+**🔧 REPLIT AGENT PROMPT --- Real Provider Metadata Ingestion (OpenAI v1)**
+-------------------------------------------------------------------------
+
+**Objective**
+
+Extend the existing AI Compliance Scanner to perform **real provider metadata ingestion for OpenAI models**, and display this metadata transparently in the **Audit Trail (right pane)**.
+
+This implementation must be:
+
+-   Honest about what data is available
+
+-   Explicit about sources
+
+-   Confidence-scored
+
+-   Non-invasive to the existing rules engine
+
+* * * * *
+
+**📐 REQUIRED IMPLEMENTATION PLAN (FOLLOW IN ORDER)**
+-----------------------------------------------------
+
+### **STEP 1 --- Define what "real metadata" means (DO NOT OVERREACH)**
+
+You must only ingest metadata that is **actually available** via:
+
+-   OpenAI API
+
+-   Curated static registry (explicitly labeled)
+
+Do NOT infer:
+
+-   Training data sources
+
+-   Legal risk
+
+-   Compliance classification
+
+Allowed metadata fields:
+
+-   model_id
+
+-   provider
+
+-   model_family (if derivable)
+
+-   modality (text / vision / code)
+
+-   context_window (if known)
+
+-   deployment_class (e.g. "general-purpose foundation model")
+
+-   metadata_source
+
+-   confidence_score
+
+* * * * *
+
+### **STEP 2 --- Create a Provider Metadata Service**
+
+Create a new file:
+
+```
+client/src/lib/providerMetadata.ts
+```
+
+This file must export:
+
+```
+export async function fetchProviderMetadata(
+  provider: "openai" | "anthropic" | "custom",
+  modelName: string
+): Promise<ProviderMetadata>
+```
+
+* * * * *
+
+### **STEP 3 --- Implement OpenAI Metadata Fetching (REAL)**
+
+For provider === "openai":
+
+1.  Use the OpenAI API:
+
+    -   Call GET /v1/models
+
+2.  Match the modelName against returned models
+
+3.  Extract **only verifiable fields**, such as:
+
+    -   id
+
+    -   owned_by
+
+    -   permissions (presence only, not interpretation)
+
+4.  Enrich results with a **curated local registry**, e.g.:
+
+```
+const OPENAI_MODEL_REGISTRY = {
+  "gpt-4o": {
+    modality: ["text", "vision"],
+    deployment_class: "general-purpose foundation model",
+    context_window: 128000
+  }
+}
+```
+
+* * * * *
+
+### **STEP 4 --- Attach Source + Confidence (MANDATORY)**
+
+Every metadata field must include:
+
+-   value
+
+-   source
+
+-   confidence
+
+Example:
+
+```
+{
+  modality: {
+    value: ["text", "vision"],
+    source: "curated_registry",
+    confidence: 0.9
+  },
+  model_id: {
+    value: "gpt-4o",
+    source: "openai_api",
+    confidence: 1.0
+  }
+}
+```
+
+If a field is unavailable:
+
+-   Set value to "unknown"
+
+-   Confidence ≤ 0.3
+
+* * * * *
+
+### **STEP 5 --- Update ModelProfile (NON-BREAKING)**
+
+Extend the existing ModelProfile type to optionally include:
+
+```
+provider_metadata?: ProviderMetadata
+```
+
+Do NOT remove or change existing fields.
+
+* * * * *
+
+### **STEP 6 --- Wire Metadata Fetching into the Scan Flow**
+
+When the user clicks **Run Compliance Scan**:
+
+1.  Fetch provider metadata first
+
+2.  Attach metadata to ModelProfile
+
+3.  Then run auditModel(modelProfile) as usual
+
+The audit logic must **not depend** on provider metadata yet.
+
+* * * * *
+
+### **STEP 7 --- Display Metadata in the Right-Pane Audit Trail**
+
+Add a new audit step **between Step 1 and Step 2**:
+
+#### **🧾 Step 1.5 --- Provider Metadata Retrieved**
+
+This card must show:
+
+-   Provider: OpenAI
+
+-   Model ID (verified)
+
+-   Modality
+
+-   Deployment class
+
+-   Metadata source(s)
+
+-   Overall confidence score
+
+Include microcopy:
+
+> "Metadata retrieved from provider APIs and curated registries. Fields not available from the provider are explicitly marked as unknown."
+
+* * * * *
+
+### **STEP 8 --- Preserve Honesty & Disclaimers**
+
+Add this line under the metadata card:
+
+> "This metadata reflects information available from provider APIs and public documentation. It does not include training data provenance or regulatory interpretation."
+
+Do NOT claim:
+
+-   Compliance analysis
+
+-   Legal assessment
+
+-   Training data certainty
+
+* * * * *
+
+**🚫 EXPLICIT NON-GOALS (DO NOT IMPLEMENT)**
+--------------------------------------------
+
+-   No EU AI Act parsing
+
+-   No RAG
+
+-   No legal reasoning
+
+-   No metadata inference beyond declared sources
+
+-   No breaking changes to rules engine
+
+* * * * *
+
+**✅ FINAL VERIFICATION CHECKLIST**
+----------------------------------
+
+After implementation:
+
+-   Enter gpt-4o + OpenAI → metadata card appears
+
+-   Metadata fields show **source + confidence**
+
+-   Unknown fields are clearly labeled
+
+-   Audit rules still function exactly as before
+
+-   UI clearly distinguishes:
+
+    -   Declared inputs
+
+    -   Retrieved metadata
+
+    -   Rule-based decisions
