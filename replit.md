@@ -2,9 +2,11 @@
 
 ## Overview
 
-This is a lightweight mock web application demonstrating the UX flow for an AI compliance scanner. The app showcases a two-screen workflow: a model intake form where users submit AI model details, and a findings screen that displays mock compliance assessment results against EU AI Act regulations.
+This is a lightweight web application demonstrating the UX flow for an AI compliance scanner. The app showcases a two-screen workflow: a model intake form where users submit AI model details, and a findings screen that displays deterministic compliance assessment results against EU AI Act regulations.
 
-This is a **demo-only mock** - there is no real compliance engine, AI logic, or external API integrations. All compliance findings and explainability answers are hardcoded mock data.
+The app now implements a **rules-based compliance engine** with 6 EU AI Act-inspired rules. Findings are computed deterministically based on the model profile, not hardcoded mock data. Explainability questions are generated dynamically from triggered rules.
+
+**Important**: This is a demo/prototype for demonstration purposes only - not legal advice.
 
 ## User Preferences
 
@@ -18,12 +20,30 @@ Preferred communication style: Simple, everyday language.
 - **State Management**: React useState for local component state; form state lifted to App.tsx and passed as props
 - **UI Components**: shadcn/ui component library built on Radix UI primitives with Tailwind CSS styling
 - **Form Handling**: React Hook Form with Zod schema validation
-- **Data Fetching**: TanStack Query (React Query) configured but minimally used since data is mocked
+- **Data Fetching**: TanStack Query (React Query) configured but minimally used since data is computed client-side
 
 ### Key Application Flow
 1. **Model Intake Screen** (`/`): Collects model name, provider, use case, and user type via a validated form
-2. **Findings Screen** (`/findings`): Displays hardcoded compliance findings and explainability Q&A
-3. State flows from intake form → App.tsx (stores ModelProfile) → Findings page (receives as prop)
+2. **Findings Screen** (`/findings`): Displays computed compliance findings and dynamic explainability Q&A
+3. State flows from intake form → App.tsx (stores ModelProfile) → auditModel() → Findings page
+
+### Compliance Engine Architecture
+- **Rules Definition** (`client/src/lib/rules.ts`): 6 EU AI Act-inspired rules with:
+  - `id`: Unique identifier (e.g., `rule-high-risk-provider`)
+  - `description`: Human-readable rule explanation
+  - `condition`: Pure function that evaluates against ModelProfile
+  - `riskContribution`: `high`, `limited`, or `minimal`
+  - `articles`: Related EU AI Act articles
+  - `explanation`: Detailed reasoning for explainability panel
+
+- **Audit Function** (`client/src/lib/audit.ts`): Pure `auditModel()` function that:
+  - Evaluates all rules against the model profile
+  - Collects triggered rules
+  - Computes risk classification (highest triggered risk level)
+  - Calculates confidence score based on rule matches
+  - Returns `ComplianceFindings` with `triggeredRules` array
+
+- **Question Generation**: `generateQuestionsFromRules()` creates 1:1 mapping from triggered rules to explainability questions
 
 ### Backend Architecture
 - **Framework**: Express.js with TypeScript
@@ -32,14 +52,25 @@ Preferred communication style: Simple, everyday language.
 - **Database Schema**: PostgreSQL schema defined with Drizzle ORM (users table only, not used by app features)
 
 ### Data Flow Pattern
-- Findings are **fully mocked** - `MOCK_FINDINGS` and `MOCK_QUESTIONS` constants in `client/src/lib/types.ts`
-- No risk engine or audit function exists; "Run Compliance Scan" button simply navigates to findings page
-- Explainability answers are static strings with hardcoded citations, not dynamically generated
+- Findings are **computed deterministically** via `auditModel()` in `client/src/lib/audit.ts`
+- Rules are defined in `client/src/lib/rules.ts` with condition functions
+- Explainability Q&A generated from triggered rules - each rule maps to one question
+- No external API calls; all logic runs client-side
 
 ### Design System
 - Typography: Inter/SF Pro Display for body, JetBrains Mono for technical text
 - Color tokens defined via CSS custom properties supporting light/dark mode
 - Component styling follows enterprise UI patterns (Linear, Stripe Dashboard inspired)
+
+## Recent Changes
+
+### December 2024 - Rules Engine Implementation
+- Added `client/src/lib/rules.ts` with 6 EU AI Act-inspired compliance rules
+- Added `client/src/lib/audit.ts` with pure `auditModel()` function
+- Extended `ComplianceFindings` type to include `triggeredRules` array
+- Replaced mock findings with computed findings in `findings.tsx`
+- Updated explainability panel to generate questions from triggered rules
+- Added prototype disclaimer alongside existing demo disclaimer
 
 ## External Dependencies
 
