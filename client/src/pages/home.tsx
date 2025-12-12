@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Shield, Scale } from "lucide-react";
 import IntakeForm from "@/components/intake-form";
 import ExplainPanel from "@/components/explain-panel";
@@ -6,20 +6,40 @@ import AuditTimeline from "@/components/audit-timeline";
 import { auditModel, generateQuestionsFromRules } from "@/lib/audit";
 import type { ModelProfile, ComplianceFindings } from "@/lib/types";
 
+export type AuditPhase = "profile" | "rules" | "classification" | "mapping" | "done";
+
 export default function HomePage() {
   const [modelProfile, setModelProfile] = useState<ModelProfile | null>(null);
   const [findings, setFindings] = useState<ComplianceFindings | null>(null);
+  const [auditPhase, setAuditPhase] = useState<AuditPhase>("profile");
 
   const handleScan = (profile: ModelProfile) => {
     setModelProfile(profile);
     const computedFindings = auditModel(profile);
     setFindings(computedFindings);
+    setAuditPhase("profile");
   };
 
   const handleReset = () => {
     setModelProfile(null);
     setFindings(null);
+    setAuditPhase("profile");
   };
+
+  useEffect(() => {
+    if (!findings) return;
+
+    setAuditPhase("profile");
+
+    const timers = [
+      setTimeout(() => setAuditPhase("rules"), 400),
+      setTimeout(() => setAuditPhase("classification"), 800),
+      setTimeout(() => setAuditPhase("mapping"), 1200),
+      setTimeout(() => setAuditPhase("done"), 1600),
+    ];
+
+    return () => timers.forEach(clearTimeout);
+  }, [findings]);
 
   const questions = findings ? generateQuestionsFromRules(findings.triggeredRules) : [];
   const hasFindings = modelProfile !== null && findings !== null;
@@ -57,7 +77,11 @@ export default function HomePage() {
                     <Scale className="w-5 h-5 text-muted-foreground" />
                     <h2 className="text-xl font-semibold">Audit Trail</h2>
                   </div>
-                  <AuditTimeline modelProfile={modelProfile} findings={findings} />
+                  <AuditTimeline 
+                    modelProfile={modelProfile} 
+                    findings={findings} 
+                    auditPhase={auditPhase}
+                  />
                 </div>
               ) : (
                 <div className="h-full flex items-center justify-center">

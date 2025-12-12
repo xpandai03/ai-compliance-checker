@@ -1,0 +1,169 @@
+Add a **progressive, step-by-step reveal** to the audit trail so users can *see* how the compliance result was produced.
+
+Do **not** change audit logic, rules, or data structures.
+
+This is a **visual audit timeline**, not simulated AI thinking.
+
+* * * * *
+
+### **Core behavior**
+
+-   The audit computation still runs instantly
+
+-   The UI reveals audit steps sequentially
+
+-   Each step appears in logical order
+
+-   No fake loading spinners
+
+-   No LLM "thinking" language
+
+* * * * *
+
+### **Steps to implement**
+
+#### **1\. Add UI-only phase state**
+
+In client/src/pages/findings.tsx, introduce a UI-only state:
+
+```
+type AuditPhase =
+  | "profile"
+  | "rules"
+  | "classification"
+  | "mapping"
+  | "done"
+
+const [auditPhase, setAuditPhase] = useState<AuditPhase>("profile")
+```
+
+This state controls **visibility only**, not computation.
+
+* * * * *
+
+#### **2\. Advance phases progressively after findings exist**
+
+Still compute findings immediately as you do today.
+
+After findings are set, add a useEffect:
+
+```
+useEffect(() => {
+  if (!findings) return
+
+  setAuditPhase("profile")
+
+  const timers = [
+    setTimeout(() => setAuditPhase("rules"), 400),
+    setTimeout(() => setAuditPhase("classification"), 800),
+    setTimeout(() => setAuditPhase("mapping"), 1200),
+    setTimeout(() => setAuditPhase("done"), 1600),
+  ]
+
+  return () => timers.forEach(clearTimeout)
+}, [findings])
+```
+
+These delays are **presentation-only**.
+
+* * * * *
+
+#### **3\. Gate each audit card by phase**
+
+In your audit trail component (e.g. FindingsPanel or AuditTimeline), wrap each step:
+
+```
+{auditPhase >= "profile" && <ModelProfileCard />}
+{auditPhase >= "rules" && <RulesEvaluatedCard />}
+{auditPhase >= "classification" && <RiskClassificationCard />}
+{auditPhase >= "mapping" && <RegulatoryMappingCard />}
+{auditPhase === "done" && <ExplainabilityReadyCard />}
+```
+
+Each card should:
+
+-   Fade in or slide slightly (optional)
+
+-   Clearly state what happened in that step
+
+* * * * *
+
+#### **4\. Add honest microcopy to reinforce determinism**
+
+At the top of the audit trail, add:
+
+> **"Audit completed deterministically in milliseconds.**
+
+> **This timeline shows how the result was derived."**
+
+Do NOT imply real-time AI reasoning.
+
+* * * * *
+
+#### **5\. Optional (recommended): show rule counts dynamically**
+
+In the **Risk Rules Evaluated** card:
+
+Instead of immediately showing:
+
+> "3 of 6 rules triggered"
+
+Start with:
+
+-   "Evaluating 6 rules..."
+
+    Then (after phase change):
+
+-   "3 rules triggered"
+
+This is still honest --- rules were already evaluated.
+
+* * * * *
+
+### **UI rules (important)**
+
+-   Do NOT add spinners that imply backend waiting
+
+-   Do NOT stream text
+
+-   Do NOT block the UI
+
+-   Do NOT change auditModel() or rules logic
+
+-   Do NOT fake computation
+
+This is **audit visualization**, not AI theater.
+
+* * * * *
+
+### **Files you may modify**
+
+-   client/src/pages/findings.tsx
+
+-   client/src/components/findings-panel.tsx
+
+-   Any audit timeline components
+
+Do NOT modify:
+
+-   audit.ts
+
+-   rules.ts
+
+-   ModelProfile schema
+
+* * * * *
+
+### **Final verification checklist**
+
+After implementation, verify:
+
+-   Intake → Scan → Audit trail reveals step-by-step
+
+-   Each step reflects real computed data
+
+-   The final risk classification matches the triggered rules
+
+-   Left pane questions still map to triggered rules
+
+-   No part of the UI implies hallucinated reasoning
