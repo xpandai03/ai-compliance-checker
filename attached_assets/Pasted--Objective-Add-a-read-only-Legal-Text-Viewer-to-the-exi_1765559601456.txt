@@ -1,0 +1,187 @@
+**Objective**
+
+Add a **read-only "Legal Text Viewer"** to the existing **Step 5: Regulatory Mapping Applied** section so users can click an EU AI Act reference (Article/Annex/Recital) and view the **source text excerpt** (or an officially-labeled snippet) inside the UI.
+
+This must **not** add legal interpretation or change risk logic. It's evidence display only.
+
+* * * * *
+
+### **Scope boundaries (strict)**
+
+✅ Allowed:
+
+-   Local reference corpus (static file)
+
+-   Read-only viewer (drawer/modal/inline expand)
+
+-   Show source type (Article / Annex / Recital)
+
+-   Show excerpt text + source link (if available)
+
+-   Show "text coverage: partial" where needed
+
+❌ Not allowed:
+
+-   No RAG
+
+-   No LLM calls
+
+-   No "does this comply"
+
+-   No dynamic legal reasoning
+
+-   No replacing the deterministic engine
+
+* * * * *
+
+**Implementation Plan (follow step-by-step)**
+---------------------------------------------
+
+### **Step 1 --- Create a small EU AI Act text corpus file (static)**
+
+Create:
+
+client/src/lib/euAiActText.ts
+
+Export a map keyed by the **exact labels shown in the UI** (e.g. "Article 28b", "Article 29", "Annex VIII", "Recital 48").
+
+Each entry should include:
+
+```
+export type EuRefType = "Article" | "Annex" | "Recital"
+
+export interface EuAiActTextEntry {
+  ref: string;              // "Article 28b"
+  type: EuRefType;          // "Article"
+  title: string;            // short title
+  excerpt: string;          // short excerpt (not full law)
+  source_url?: string;      // optional official URL
+  note?: string;            // "Excerpt only -- not complete text"
+}
+```
+
+Include at least these keys:
+
+-   Annex VIII
+
+-   Article 28b
+
+-   Article 29
+
+-   Recital 48
+
+**Important:** keep excerpts short and label clearly:
+
+-   "Excerpt for demo / reference only"
+
+-   "Not complete legal text"
+
+(If you don't have the real text handy, use placeholder excerpts that are clearly labeled as placeholders, and still wire the viewer properly.)
+
+* * * * *
+
+### **Step 2 --- Add a viewer UI component**
+
+Create:
+
+client/src/components/legal-text-viewer.tsx
+
+Behavior:
+
+-   Accepts refId (e.g. "Article 28b")
+
+-   Loads entry from euAiActText.ts
+
+-   Renders:
+
+    -   Ref + type + title
+
+    -   Excerpt text (monospace or readable block)
+
+    -   Optional "Open source" link if URL exists
+
+    -   Note/warning about partial text / not legal advice
+
+UI style:
+
+-   Modal or right-side drawer OR inline expansion (your choice)
+
+-   Must feel "compliance tool" (clean, not chatty)
+
+* * * * *
+
+### **Step 3 --- Wire it into Step 5 "Regulatory Mapping Applied"**
+
+Where you render the list of mapped references (badges/buttons like "Article 28b", "Article 29"...):
+
+-   Make each one clickable
+
+-   On click:
+
+    -   set selectedRefId
+
+    -   open viewer
+
+Add subtle hint text near the list:
+
+> "Click a reference to view supporting text (read-only)."
+
+* * * * *
+
+### **Step 4 --- Add 2 disclaimers (keep them short)**
+
+Inside the viewer:
+
+> "Read-only excerpt for reference. Not complete text. Not legal advice."
+
+In Step 5 footer (if not already):
+
+> "This system maps deterministic rules to EU AI Act references. It does not interpret the law."
+
+* * * * *
+
+### **Step 5 --- Verify behavior**
+
+-   Run a scan that maps to Article 28b / Article 29 / Annex VIII / Recital 48
+
+-   Clicking each reference opens the viewer
+
+-   Viewer displays the correct entry
+
+-   If an entry is missing, show:
+
+    -   "No excerpt available for this reference yet" (graceful fallback)
+
+* * * * *
+
+**Files you may modify**
+------------------------
+
+-   client/src/components/findings-panel.tsx (or wherever Step 5 lives)
+
+-   client/src/components/audit-timeline.tsx (if used)
+
+-   client/src/lib/euAiActText.ts (new)
+
+-   client/src/components/legal-text-viewer.tsx (new)
+
+Do NOT modify:
+
+-   audit.ts
+
+-   rules.ts
+
+-   risk scoring logic
+
+* * * * *
+
+**Outcome**
+-----------
+
+After this, the demo will be **more real** because:
+
+-   users can inspect the "evidence layer"
+
+-   it feels audit-ready
+
+-   you're not pretending AI interpreted law

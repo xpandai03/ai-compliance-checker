@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { FileText, Scale, ShieldAlert, BookOpen, HelpCircle, Info, CheckCircle2, Database, ChevronDown, ChevronRight } from "lucide-react";
+import { FileText, Scale, ShieldAlert, BookOpen, HelpCircle, Info, CheckCircle2, Database, ChevronDown, ChevronRight, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import AuditStepCard from "./audit-step-card";
+import LegalTextViewer from "./legal-text-viewer";
 import type { ModelProfile, ComplianceFindings, ProviderMetadata, AppliedArticle } from "@/lib/types";
 import type { AuditPhase } from "@/pages/home";
 import { formatConfidence, getSourceLabel } from "@/lib/providerMetadata";
@@ -23,9 +25,10 @@ function isPhaseAtLeast(current: AuditPhase, target: AuditPhase): boolean {
 interface ArticleLegalBasisProps {
   appliedArticle: AppliedArticle;
   triggeredRules: ComplianceFindings["triggeredRules"];
+  onViewText: (refId: string) => void;
 }
 
-function ArticleLegalBasis({ appliedArticle, triggeredRules }: ArticleLegalBasisProps) {
+function ArticleLegalBasis({ appliedArticle, triggeredRules, onViewText }: ArticleLegalBasisProps) {
   const [isOpen, setIsOpen] = useState(false);
   
   const relevantRules = triggeredRules.filter(rule => 
@@ -76,6 +79,21 @@ function ArticleLegalBasis({ appliedArticle, triggeredRules }: ArticleLegalBasis
                 ))}
               </div>
             </div>
+            <div className="pt-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1.5 text-xs"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onViewText(appliedArticle.article);
+                }}
+                data-testid={`button-view-text-${appliedArticle.article}`}
+              >
+                <ExternalLink className="w-3 h-3" />
+                View source text
+              </Button>
+            </div>
           </div>
         </CollapsibleContent>
       </div>
@@ -84,6 +102,14 @@ function ArticleLegalBasis({ appliedArticle, triggeredRules }: ArticleLegalBasis
 }
 
 export default function AuditTimeline({ modelProfile, findings, auditPhase, providerMetadata }: AuditTimelineProps) {
+  const [selectedTextRef, setSelectedTextRef] = useState<string | null>(null);
+  const [textViewerOpen, setTextViewerOpen] = useState(false);
+
+  const handleViewText = (refId: string) => {
+    setSelectedTextRef(refId);
+    setTextViewerOpen(true);
+  };
+
   const getRiskBadgeVariant = (risk: string): "default" | "secondary" | "destructive" | "outline" => {
     switch (risk) {
       case "High Risk":
@@ -290,17 +316,21 @@ export default function AuditTimeline({ modelProfile, findings, auditPhase, prov
                 <p className="text-sm text-muted-foreground">
                   This risk classification is grounded in explicit EU AI Act articles, based on the triggered deployment and model type rules.
                 </p>
+                <p className="text-xs text-muted-foreground">
+                  Click a reference to view supporting text (read-only).
+                </p>
                 <div className="space-y-2">
                   {(findings.appliedArticles || []).map((appliedArticle) => (
                     <ArticleLegalBasis
                       key={appliedArticle.article}
                       appliedArticle={appliedArticle}
                       triggeredRules={findings.triggeredRules}
+                      onViewText={handleViewText}
                     />
                   ))}
                 </div>
                 <p className="text-xs text-muted-foreground italic mt-3">
-                  This system applies deterministic rules derived from the EU AI Act. It does not interpret or replace legal advice.
+                  This system maps deterministic rules to EU AI Act references. It does not interpret the law.
                 </p>
               </div>
             </AuditStepCard>
@@ -337,6 +367,12 @@ export default function AuditTimeline({ modelProfile, findings, auditPhase, prov
           </div>
         </div>
       )}
+
+      <LegalTextViewer
+        refId={selectedTextRef}
+        open={textViewerOpen}
+        onOpenChange={setTextViewerOpen}
+      />
     </div>
   );
 }
