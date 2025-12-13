@@ -84,6 +84,50 @@ export interface HIPAAComplianceReport {
 const TOOL_VERSION = "v0.3-demo";
 
 // =============================================================================
+// PDF CONFIGURATION - Layout constants for professional report formatting
+// =============================================================================
+const PDF_CONFIG = {
+  format: "a4" as const,
+  orientation: "portrait" as const,
+  unit: "mm" as const,
+  margins: { top: 20, bottom: 25, left: 20, right: 20 },
+  pageWidth: 210,
+  pageHeight: 297,
+  contentWidth: 170, // 210 - 20 - 20
+  safeBottom: 272,   // 297 - 25 for footer
+  footerY: 285,
+};
+
+// ASCII-safe symbols for Helvetica font compatibility
+const SYMBOLS = {
+  confirmed: "[Y]",
+  unknown: "[?]",
+  missing: "[X]",
+  high_risk: "(!!)",
+  medium_risk: "(!)",
+  low_risk: "(-)",
+  bullet: "•",
+};
+
+// Color palette (RGB) - grayscale-safe
+const COLORS = {
+  high: [139, 0, 0] as [number, number, number],
+  needs_review: [180, 140, 60] as [number, number, number],
+  low: [60, 140, 60] as [number, number, number],
+  primary_text: [40, 40, 40] as [number, number, number],
+  secondary_text: [80, 80, 80] as [number, number, number],
+  muted_text: [100, 100, 100] as [number, number, number],
+  light_text: [120, 120, 120] as [number, number, number],
+  border: [150, 150, 150] as [number, number, number],
+  table_header_bg: [240, 240, 240] as [number, number, number],
+  divider: [180, 180, 180] as [number, number, number],
+  // Muted segment colors for risk bar
+  low_segment: [200, 220, 200] as [number, number, number],
+  needs_review_segment: [220, 210, 180] as [number, number, number],
+  high_segment: [220, 190, 190] as [number, number, number],
+};
+
+// =============================================================================
 // ASSESSMENT SCOPE COPY - Static, enterprise-grade content
 // These sections contain NO logic, NO conditionals, NO findings references
 // =============================================================================
@@ -454,14 +498,22 @@ export async function exportHIPAAReportAsPDF(report: HIPAAComplianceReport, useC
   const sanitizedName = useCaseName.replace(/[^a-zA-Z0-9-_]/g, "_");
   const filename = `hipaa-risk-assessment_${sanitizedName}_${timestamp}.pdf`;
 
-  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const marginLeft = 20;
-  const marginRight = 20;
-  const contentWidth = pageWidth - marginLeft - marginRight;
-  let y = 20;
+  const doc = new jsPDF({
+    orientation: PDF_CONFIG.orientation,
+    unit: PDF_CONFIG.unit,
+    format: PDF_CONFIG.format
+  });
 
-  const addText = (text: string, fontSize: number, fontStyle: "normal" | "bold" = "normal", color: [number, number, number] = [0, 0, 0]) => {
+  const marginLeft = PDF_CONFIG.margins.left;
+  const contentWidth = PDF_CONFIG.contentWidth;
+  let y = PDF_CONFIG.margins.top;
+  let currentPage = 1;
+
+  // =========================================================================
+  // CORE HELPER FUNCTIONS
+  // =========================================================================
+
+  const addText = (text: string, fontSize: number, fontStyle: "normal" | "bold" = "normal", color: [number, number, number] = COLORS.primary_text) => {
     doc.setFontSize(fontSize);
     doc.setFont("helvetica", fontStyle);
     doc.setTextColor(color[0], color[1], color[2]);
@@ -474,84 +526,224 @@ export async function exportHIPAAReportAsPDF(report: HIPAAComplianceReport, useC
     y += height;
   };
 
-  const checkPageBreak = (requiredSpace: number) => {
-    if (y + requiredSpace > 270) {
+  const checkPageBreak = (requiredSpace: number): boolean => {
+    if (y + requiredSpace > PDF_CONFIG.safeBottom) {
+      addPageFooter();
       doc.addPage();
-      y = 20;
+      currentPage++;
+      y = PDF_CONFIG.margins.top;
+      return true;
     }
+    return false;
+  };
+
+  const startNewPage = () => {
+    addPageFooter();
+    doc.addPage();
+    currentPage++;
+    y = PDF_CONFIG.margins.top;
+  };
+
+  const addPageFooter = () => {
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...COLORS.light_text);
+    doc.text(`Page ${currentPage}`, PDF_CONFIG.pageWidth / 2, PDF_CONFIG.footerY, { align: "center" });
+    doc.text(report.report_id.slice(0, 8), marginLeft, PDF_CONFIG.footerY);
+    doc.text("HIPAA AI Risk Assessment", PDF_CONFIG.pageWidth - marginLeft, PDF_CONFIG.footerY, { align: "right" });
   };
 
   // =========================================================================
-  // VISUAL HELPER: Risk Summary Bar
-  // Draws a horizontal bar showing LOW | NEEDS_REVIEW | HIGH with marker
+  // VISUAL HELPER: Draw Cover Page
+  // =========================================================================
+  const drawCoverPage = () => {
+    // Centered title block
+    y = 60;
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...COLORS.muted_text);
+    doc.text("DETERMINISTIC, RULES-BASED ANALYSIS", PDF_CONFIG.pageWidth / 2, y, { align: "center" });
+
+    y += 8;
+    doc.setFontSize(28);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...COLORS.primary_text);
+    doc.text("HIPAA AI", PDF_CONFIG.pageWidth / 2, y, { align: "center" });
+
+    y += 12;
+    doc.text("RISK ASSESSMENT", PDF_CONFIG.pageWidth / 2, y, { align: "center" });
+
+    y += 8;
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...COLORS.secondary_text);
+    doc.text("Use Case Report", PDF_CONFIG.pageWidth / 2, y, { align: "center" });
+
+    // Metadata box
+    y = 110;
+    const boxX = marginLeft + 20;
+    const boxWidth = contentWidth - 40;
+    const boxHeight = 50;
+
+    doc.setDrawColor(...COLORS.border);
+    doc.setLineWidth(0.5);
+    doc.rect(boxX, y, boxWidth, boxHeight, "S");
+
+    y += 10;
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...COLORS.secondary_text);
+
+    const labelX = boxX + 10;
+    const valueX = boxX + 50;
+
+    doc.text("USE CASE:", labelX, y);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...COLORS.primary_text);
+    const useCaseLines = doc.splitTextToSize(report.executive_summary.use_case_name || "Unnamed", boxWidth - 60);
+    doc.text(useCaseLines[0], valueX, y);
+
+    y += 8;
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...COLORS.secondary_text);
+    doc.text("ORGANIZATION:", labelX, y);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...COLORS.primary_text);
+    doc.text(report.use_case_overview.organization_type.replace(/_/g, " ").toUpperCase(), valueX, y);
+
+    y += 8;
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...COLORS.secondary_text);
+    doc.text("ENVIRONMENT:", labelX, y);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...COLORS.primary_text);
+    doc.text(report.use_case_overview.environment.toUpperCase(), valueX, y);
+
+    y += 8;
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...COLORS.secondary_text);
+    doc.text("DATE:", labelX, y);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...COLORS.primary_text);
+    doc.text(new Date(report.generated_at).toLocaleDateString("en-US", {
+      year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit"
+    }), valueX, y);
+
+    // Tool info line
+    y = 175;
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...COLORS.muted_text);
+    doc.text(`Tool Version: ${report.tool_version}`, PDF_CONFIG.pageWidth / 2 - 30, y);
+
+    // Beta badge
+    doc.setFillColor(240, 240, 240);
+    doc.roundedRect(PDF_CONFIG.pageWidth / 2 + 20, y - 4, 20, 6, 1, 1, "F");
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...COLORS.secondary_text);
+    doc.text("BETA", PDF_CONFIG.pageWidth / 2 + 30, y, { align: "center" });
+
+    y += 6;
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...COLORS.light_text);
+    doc.text(`Report ID: ${report.report_id}`, PDF_CONFIG.pageWidth / 2, y, { align: "center" });
+
+    // Disclaimer box at bottom
+    y = 210;
+    const disclaimerBoxX = marginLeft + 15;
+    const disclaimerBoxWidth = contentWidth - 30;
+    const disclaimerBoxHeight = 35;
+
+    doc.setDrawColor(...COLORS.high);
+    doc.setLineWidth(0.3);
+    doc.rect(disclaimerBoxX, y, disclaimerBoxWidth, disclaimerBoxHeight, "S");
+
+    y += 8;
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...COLORS.high);
+    doc.text("IMPORTANT NOTICE", PDF_CONFIG.pageWidth / 2, y, { align: "center" });
+
+    y += 7;
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...COLORS.secondary_text);
+    const disclaimerText = "This report is generated by a deterministic, rules-based system. It does not constitute legal advice, HIPAA certification, or compliance attestation. See Section 10 for complete disclaimers.";
+    const disclaimerLines = doc.splitTextToSize(disclaimerText, disclaimerBoxWidth - 10);
+    doc.text(disclaimerLines, PDF_CONFIG.pageWidth / 2, y, { align: "center", maxWidth: disclaimerBoxWidth - 10 });
+
+    // Page number for cover
+    doc.setFontSize(8);
+    doc.setTextColor(...COLORS.light_text);
+    doc.text(`Page ${currentPage}`, PDF_CONFIG.pageWidth / 2, PDF_CONFIG.footerY, { align: "center" });
+  };
+
+  // =========================================================================
+  // VISUAL HELPER: Risk Summary Bar (with box border)
   // =========================================================================
   const drawRiskSummaryBar = (riskLevel: "HIGH" | "NEEDS_REVIEW" | "LOW") => {
+    const barY = y;
     const barHeight = 8;
     const barWidth = contentWidth;
     const segmentWidth = barWidth / 3;
 
+    // Outer box border
+    doc.setDrawColor(...COLORS.border);
+    doc.setLineWidth(0.5);
+    doc.rect(marginLeft - 2, barY - 8, barWidth + 4, barHeight + 18, "S");
+
     // Draw the three segments with muted colors
-    // LOW segment (left)
-    doc.setFillColor(200, 220, 200); // Muted green
-    doc.rect(marginLeft, y, segmentWidth, barHeight, "F");
+    doc.setFillColor(...COLORS.low_segment);
+    doc.rect(marginLeft, barY, segmentWidth, barHeight, "F");
 
-    // NEEDS_REVIEW segment (middle)
-    doc.setFillColor(220, 210, 180); // Muted amber
-    doc.rect(marginLeft + segmentWidth, y, segmentWidth, barHeight, "F");
+    doc.setFillColor(...COLORS.needs_review_segment);
+    doc.rect(marginLeft + segmentWidth, barY, segmentWidth, barHeight, "F");
 
-    // HIGH segment (right)
-    doc.setFillColor(220, 190, 190); // Muted red
-    doc.rect(marginLeft + segmentWidth * 2, y, segmentWidth, barHeight, "F");
+    doc.setFillColor(...COLORS.high_segment);
+    doc.rect(marginLeft + segmentWidth * 2, barY, segmentWidth, barHeight, "F");
 
-    // Draw border around entire bar
+    // Inner bar border
     doc.setDrawColor(120, 120, 120);
     doc.setLineWidth(0.3);
-    doc.rect(marginLeft, y, barWidth, barHeight, "S");
+    doc.rect(marginLeft, barY, barWidth, barHeight, "S");
 
-    // Draw segment dividers
-    doc.line(marginLeft + segmentWidth, y, marginLeft + segmentWidth, y + barHeight);
-    doc.line(marginLeft + segmentWidth * 2, y, marginLeft + segmentWidth * 2, y + barHeight);
+    // Segment dividers
+    doc.line(marginLeft + segmentWidth, barY, marginLeft + segmentWidth, barY + barHeight);
+    doc.line(marginLeft + segmentWidth * 2, barY, marginLeft + segmentWidth * 2, barY + barHeight);
 
-    // Calculate marker position based on risk level
-    let markerX = marginLeft + segmentWidth / 2; // Default: LOW (center of first segment)
+    // Marker position
+    let markerX = marginLeft + segmentWidth / 2;
     if (riskLevel === "NEEDS_REVIEW") {
-      markerX = marginLeft + segmentWidth * 1.5; // Center of middle segment
+      markerX = marginLeft + segmentWidth * 1.5;
     } else if (riskLevel === "HIGH") {
-      markerX = marginLeft + segmentWidth * 2.5; // Center of last segment
+      markerX = marginLeft + segmentWidth * 2.5;
     }
 
-    // Draw marker (inverted triangle pointing down) using lines
+    // Draw marker triangle
     const markerSize = 4;
     doc.setFillColor(40, 40, 40);
-    // Draw filled triangle using polygon path
     doc.setDrawColor(40, 40, 40);
     doc.lines(
-      [
-        [markerSize * 2, 0],      // right edge
-        [-markerSize, 4],         // down to bottom point
-        [-markerSize, -4]         // back to start
-      ],
-      markerX - markerSize,
-      y - 1,
-      [1, 1],
-      "F"
+      [[markerSize * 2, 0], [-markerSize, 4], [-markerSize, -4]],
+      markerX - markerSize, barY - 1, [1, 1], "F"
     );
 
-    // Add labels below the bar
-    y += barHeight + 2;
+    // Labels
+    y = barY + barHeight + 2;
     doc.setFontSize(7);
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(80, 80, 80);
+    doc.setTextColor(...COLORS.secondary_text);
     doc.text("LOW", marginLeft + segmentWidth / 2, y + 3, { align: "center" });
     doc.text("NEEDS REVIEW", marginLeft + segmentWidth * 1.5, y + 3, { align: "center" });
     doc.text("HIGH", marginLeft + segmentWidth * 2.5, y + 3, { align: "center" });
 
-    y += 8;
+    y += 12;
   };
 
   // =========================================================================
-  // VISUAL HELPER: Findings Breakdown
-  // Shows count of findings by severity level
+  // VISUAL HELPER: Findings Breakdown (with box border)
   // =========================================================================
   const drawFindingsBreakdown = (triggeredSafeguards: HIPAAComplianceReport["triggered_safeguards"]) => {
     const highCount = triggeredSafeguards.filter(s => s.risk_level === "high").length;
@@ -559,250 +751,559 @@ export async function exportHIPAAReportAsPDF(report: HIPAAComplianceReport, useC
     const lowCount = triggeredSafeguards.filter(s => s.risk_level === "low").length;
     const total = triggeredSafeguards.length;
 
+    const boxStartY = y;
+    const boxHeight = 32;
+
+    // Box border
+    doc.setDrawColor(...COLORS.border);
+    doc.setLineWidth(0.5);
+    doc.rect(marginLeft - 2, boxStartY, 85, boxHeight, "S");
+
+    y += 4;
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
 
-    // HIGH findings
-    doc.setFillColor(139, 0, 0);
-    doc.rect(marginLeft, y, 3, 3, "F");
-    doc.setTextColor(60, 60, 60);
-    doc.text(`  HIGH RISK: ${highCount} finding${highCount !== 1 ? "s" : ""}`, marginLeft + 4, y + 2.5);
-    y += 5;
-
-    // NEEDS_REVIEW findings
-    doc.setFillColor(180, 140, 60);
-    doc.rect(marginLeft, y, 3, 3, "F");
-    doc.text(`  NEEDS REVIEW: ${needsReviewCount} finding${needsReviewCount !== 1 ? "s" : ""}`, marginLeft + 4, y + 2.5);
-    y += 5;
-
-    // LOW findings
-    doc.setFillColor(60, 140, 60);
-    doc.rect(marginLeft, y, 3, 3, "F");
-    doc.text(`  LOW RISK: ${lowCount} finding${lowCount !== 1 ? "s" : ""}`, marginLeft + 4, y + 2.5);
-    y += 5;
-
-    // Total
-    doc.setDrawColor(150, 150, 150);
-    doc.line(marginLeft, y, marginLeft + 60, y);
-    y += 3;
-    doc.setFont("helvetica", "bold");
-    doc.text(`Total Safeguards Evaluated: ${total}`, marginLeft, y + 2);
+    // HIGH
+    doc.setFillColor(...COLORS.high);
+    doc.rect(marginLeft + 2, y, 3, 3, "F");
+    doc.setTextColor(...COLORS.secondary_text);
+    doc.text(`HIGH RISK: ${highCount} finding${highCount !== 1 ? "s" : ""}`, marginLeft + 8, y + 2.5);
     y += 6;
+
+    // NEEDS_REVIEW
+    doc.setFillColor(...COLORS.needs_review);
+    doc.rect(marginLeft + 2, y, 3, 3, "F");
+    doc.text(`NEEDS REVIEW: ${needsReviewCount} finding${needsReviewCount !== 1 ? "s" : ""}`, marginLeft + 8, y + 2.5);
+    y += 6;
+
+    // LOW
+    doc.setFillColor(...COLORS.low);
+    doc.rect(marginLeft + 2, y, 3, 3, "F");
+    doc.text(`LOW RISK: ${lowCount} finding${lowCount !== 1 ? "s" : ""}`, marginLeft + 8, y + 2.5);
+    y += 5;
+
+    // Divider and total
+    doc.setDrawColor(...COLORS.border);
+    doc.line(marginLeft + 2, y, marginLeft + 80, y);
+    y += 4;
+    doc.setFont("helvetica", "bold");
+    doc.text(`Total Evaluated: ${total}`, marginLeft + 2, y);
+    y += 8;
   };
 
-  addText("HIPAA AI Risk Assessment Report", 18, "bold");
-  addText("Deterministic, Rules-Based Analysis", 11, "normal", [100, 100, 100]);
-  addSpacer(4);
-  addText(`Report ID: ${report.report_id}`, 8, "normal", [100, 100, 100]);
-  addText(`Generated: ${new Date(report.generated_at).toLocaleString()}`, 8, "normal", [100, 100, 100]);
-  addSpacer(8);
+  // =========================================================================
+  // VISUAL HELPER: PHI Exposure Indicator Table
+  // =========================================================================
+  const drawPHIExposureTable = () => {
+    const tableY = y;
+    const rowHeight = 8;
+    const colWidths = [55, 45, 50];
+    const tableWidth = colWidths.reduce((a, b) => a + b, 0);
+
+    // Header row
+    doc.setFillColor(...COLORS.table_header_bg);
+    doc.rect(marginLeft, tableY, tableWidth, rowHeight, "F");
+    doc.setDrawColor(...COLORS.border);
+    doc.setLineWidth(0.3);
+    doc.rect(marginLeft, tableY, tableWidth, rowHeight, "S");
+
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...COLORS.primary_text);
+    doc.text("FACTOR", marginLeft + 3, tableY + 5.5);
+    doc.text("VALUE", marginLeft + colWidths[0] + 3, tableY + 5.5);
+    doc.text("INDICATOR", marginLeft + colWidths[0] + colWidths[1] + 3, tableY + 5.5);
+
+    // Column dividers
+    doc.line(marginLeft + colWidths[0], tableY, marginLeft + colWidths[0], tableY + rowHeight);
+    doc.line(marginLeft + colWidths[0] + colWidths[1], tableY, marginLeft + colWidths[0] + colWidths[1], tableY + rowHeight);
+
+    y = tableY + rowHeight;
+
+    // Helper to get indicator
+    const getIndicator = (factor: string, value: string | boolean | "unknown"): { text: string; color: [number, number, number] } => {
+      if (factor === "logging" && value === "retained") return { text: SYMBOLS.high_risk + " ELEVATED", color: COLORS.high };
+      if (factor === "logging" && value === "unknown") return { text: SYMBOLS.medium_risk + " CONCERN", color: COLORS.needs_review };
+      if (factor === "logging") return { text: SYMBOLS.low_risk + " OK", color: COLORS.low };
+
+      if (value === false) return { text: SYMBOLS.high_risk + " ELEVATED", color: COLORS.high };
+      if (value === "unknown") return { text: SYMBOLS.medium_risk + " CONCERN", color: COLORS.needs_review };
+      if (value === true) return { text: SYMBOLS.low_risk + " OK", color: COLORS.low };
+
+      return { text: SYMBOLS.unknown + " UNKNOWN", color: COLORS.muted_text };
+    };
+
+    // Data rows
+    const rows = [
+      { factor: "Logging Behavior", value: report.phi_exposure_mapping.logging_behavior, type: "logging" },
+      { factor: "Retention Defined", value: report.phi_exposure_mapping.retention_period_defined, type: "bool" },
+      { factor: "Access Controls", value: report.phi_exposure_mapping.access_controls_documented, type: "bool" },
+    ];
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+
+    for (const row of rows) {
+      doc.rect(marginLeft, y, tableWidth, rowHeight, "S");
+      doc.line(marginLeft + colWidths[0], y, marginLeft + colWidths[0], y + rowHeight);
+      doc.line(marginLeft + colWidths[0] + colWidths[1], y, marginLeft + colWidths[0] + colWidths[1], y + rowHeight);
+
+      doc.setTextColor(...COLORS.secondary_text);
+      doc.text(row.factor, marginLeft + 3, y + 5.5);
+
+      const displayValue = typeof row.value === "boolean" ? (row.value ? "Yes" : "No") : String(row.value).toUpperCase();
+      doc.text(displayValue, marginLeft + colWidths[0] + 3, y + 5.5);
+
+      const indicator = getIndicator(row.type, row.value);
+      doc.setTextColor(...indicator.color);
+      doc.text(indicator.text, marginLeft + colWidths[0] + colWidths[1] + 3, y + 5.5);
+
+      y += rowHeight;
+    }
+
+    // Overall risk footer
+    doc.setFillColor(...COLORS.table_header_bg);
+    doc.rect(marginLeft, y, tableWidth, rowHeight, "F");
+    doc.rect(marginLeft, y, tableWidth, rowHeight, "S");
+
+    doc.setFont("helvetica", "bold");
+    const overallRiskColor = report.phi_exposure_mapping.exposure_risk_level === "high" ? COLORS.high :
+                             report.phi_exposure_mapping.exposure_risk_level === "medium" ? COLORS.needs_review : COLORS.low;
+    doc.setTextColor(...overallRiskColor);
+    doc.text(`OVERALL EXPOSURE RISK: ${report.phi_exposure_mapping.exposure_risk_level.toUpperCase()}`, marginLeft + 3, y + 5.5);
+
+    y += rowHeight + 6;
+  };
 
   // =========================================================================
-  // SECTION 1: Assessment Scope & Limitations
+  // VISUAL HELPER: Vendor Table
   // =========================================================================
-  addText("1. Assessment Scope & Limitations", 14, "bold");
-  addSpacer(4);
+  const drawVendorTable = () => {
+    if (report.vendor_analysis.vendors.length === 0) {
+      doc.setFontSize(10);
+      doc.setTextColor(...COLORS.secondary_text);
+      doc.text("No vendors configured for this use case.", marginLeft, y);
+      y += 8;
+      return;
+    }
 
-  addText("1.1 What This Assessment Covers", 11, "bold");
-  for (const item of report.assessment_scope.what_this_covers) {
-    checkPageBreak(12);
-    addText(`• ${item}`, 9, "normal", [60, 60, 60]);
-  }
-  addSpacer(4);
+    const tableY = y;
+    const rowHeight = 8;
+    const colWidths = [45, 25, 35, 30, 35];
+    const tableWidth = colWidths.reduce((a, b) => a + b, 0);
 
-  checkPageBreak(40);
-  addText("1.2 What This Assessment Does Not Cover", 11, "bold");
-  for (const item of report.assessment_scope.what_this_does_not_cover) {
-    checkPageBreak(12);
-    addText(`• ${item}`, 9, "normal", [60, 60, 60]);
-  }
-  addSpacer(4);
+    // Header
+    doc.setFillColor(...COLORS.table_header_bg);
+    doc.rect(marginLeft, tableY, tableWidth, rowHeight, "F");
+    doc.setDrawColor(...COLORS.border);
+    doc.setLineWidth(0.3);
+    doc.rect(marginLeft, tableY, tableWidth, rowHeight, "S");
 
-  checkPageBreak(40);
-  addText("1.3 When to Re-Run This Assessment", 11, "bold");
-  for (const item of report.assessment_scope.when_to_rerun) {
-    checkPageBreak(12);
-    addText(`• ${item}`, 9, "normal", [60, 60, 60]);
-  }
-  addSpacer(6);
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...COLORS.primary_text);
+
+    let colX = marginLeft;
+    const headers = ["VENDOR", "BAA", "STORAGE", "LOGGING", "RISK"];
+    for (let i = 0; i < headers.length; i++) {
+      doc.text(headers[i], colX + 2, tableY + 5.5);
+      if (i < headers.length - 1) {
+        doc.line(colX + colWidths[i], tableY, colX + colWidths[i], tableY + rowHeight);
+      }
+      colX += colWidths[i];
+    }
+
+    y = tableY + rowHeight;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+
+    for (const vendor of report.vendor_analysis.vendors) {
+      // Check if high risk - tint row
+      const hasHighRisk = vendor.baa_status === "No" || vendor.risk_factors.length > 1;
+      if (hasHighRisk) {
+        doc.setFillColor(255, 245, 245);
+        doc.rect(marginLeft, y, tableWidth, rowHeight, "F");
+      }
+
+      doc.setDrawColor(...COLORS.border);
+      doc.rect(marginLeft, y, tableWidth, rowHeight, "S");
+
+      colX = marginLeft;
+
+      // Vendor name (truncate if needed)
+      doc.setTextColor(...COLORS.primary_text);
+      const vName = vendor.vendor_name.length > 12 ? vendor.vendor_name.slice(0, 10) + ".." : vendor.vendor_name;
+      doc.text(vName, colX + 2, y + 5.5);
+      doc.line(colX + colWidths[0], y, colX + colWidths[0], y + rowHeight);
+      colX += colWidths[0];
+
+      // BAA
+      const baaSymbol = vendor.baa_status === "Yes" ? SYMBOLS.confirmed :
+                        vendor.baa_status === "Unknown" ? SYMBOLS.unknown : SYMBOLS.missing;
+      const baaColor = vendor.baa_status === "Yes" ? COLORS.low :
+                       vendor.baa_status === "Unknown" ? COLORS.needs_review : COLORS.high;
+      doc.setTextColor(...baaColor);
+      doc.text(baaSymbol, colX + 2, y + 5.5);
+      doc.line(colX + colWidths[1], y, colX + colWidths[1], y + rowHeight);
+      colX += colWidths[1];
+
+      // Storage
+      doc.setTextColor(...COLORS.secondary_text);
+      const storageShort = vendor.data_storage === "stored" ? "Stored" :
+                           vendor.data_storage === "transient" ? "Transient" :
+                           vendor.data_storage === "none" ? "None" : "Unknown";
+      doc.text(storageShort, colX + 2, y + 5.5);
+      doc.line(colX + colWidths[2], y, colX + colWidths[2], y + rowHeight);
+      colX += colWidths[2];
+
+      // Logging
+      doc.text(vendor.logging_enabled, colX + 2, y + 5.5);
+      doc.line(colX + colWidths[3], y, colX + colWidths[3], y + rowHeight);
+      colX += colWidths[3];
+
+      // Risk indicator
+      const riskSymbol = vendor.risk_factors.length > 1 ? SYMBOLS.high_risk :
+                         vendor.risk_factors.length === 1 ? SYMBOLS.medium_risk : SYMBOLS.low_risk;
+      const riskColor = vendor.risk_factors.length > 1 ? COLORS.high :
+                        vendor.risk_factors.length === 1 ? COLORS.needs_review : COLORS.low;
+      const riskLabel = vendor.risk_factors.length > 1 ? "HIGH" :
+                        vendor.risk_factors.length === 1 ? "MEDIUM" : "LOW";
+      doc.setTextColor(...riskColor);
+      doc.text(`${riskSymbol} ${riskLabel}`, colX + 2, y + 5.5);
+
+      y += rowHeight;
+    }
+
+    // Overall vendor risk footer
+    doc.setFillColor(...COLORS.table_header_bg);
+    doc.rect(marginLeft, y, tableWidth, rowHeight, "F");
+    doc.rect(marginLeft, y, tableWidth, rowHeight, "S");
+
+    doc.setFont("helvetica", "bold");
+    const overallColor = report.vendor_analysis.overall_vendor_risk === "high" ? COLORS.high :
+                         report.vendor_analysis.overall_vendor_risk === "medium" ? COLORS.needs_review : COLORS.low;
+    doc.setTextColor(...overallColor);
+    doc.text(`OVERALL VENDOR RISK: ${report.vendor_analysis.overall_vendor_risk.toUpperCase()}`, marginLeft + 2, y + 5.5);
+
+    y += rowHeight + 6;
+  };
 
   // =========================================================================
-  // SECTION 2: How Compliance Teams Use This Report
+  // VISUAL HELPER: Remediation Table
   // =========================================================================
-  checkPageBreak(50);
-  addText("2. How Compliance Teams Typically Use This Report", 14, "bold");
-  for (const item of report.assessment_scope.how_teams_use_this) {
-    checkPageBreak(12);
-    addText(`• ${item}`, 9, "normal", [60, 60, 60]);
-  }
-  addSpacer(6);
+  const drawRemediationTable = () => {
+    if (report.remediation_checklist.length === 0) {
+      doc.setFontSize(10);
+      doc.setTextColor(...COLORS.secondary_text);
+      doc.text("No remediation items identified.", marginLeft, y);
+      y += 8;
+      return;
+    }
+
+    const rowHeight = 10;
+    const colWidths = [22, 120, 28];
+    const tableWidth = colWidths.reduce((a, b) => a + b, 0);
+
+    // Header
+    doc.setFillColor(...COLORS.table_header_bg);
+    doc.rect(marginLeft, y, tableWidth, rowHeight - 2, "F");
+    doc.setDrawColor(...COLORS.border);
+    doc.setLineWidth(0.3);
+    doc.rect(marginLeft, y, tableWidth, rowHeight - 2, "S");
+
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...COLORS.primary_text);
+    doc.text("PRIORITY", marginLeft + 2, y + 5.5);
+    doc.line(marginLeft + colWidths[0], y, marginLeft + colWidths[0], y + rowHeight - 2);
+    doc.text("ACTION", marginLeft + colWidths[0] + 2, y + 5.5);
+    doc.line(marginLeft + colWidths[0] + colWidths[1], y, marginLeft + colWidths[0] + colWidths[1], y + rowHeight - 2);
+    doc.text("RULE", marginLeft + colWidths[0] + colWidths[1] + 2, y + 5.5);
+
+    y += rowHeight - 2;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+
+    for (const item of report.remediation_checklist) {
+      checkPageBreak(rowHeight + 2);
+
+      // Tint high priority rows
+      if (item.priority === "high") {
+        doc.setFillColor(255, 245, 245);
+        doc.rect(marginLeft, y, tableWidth, rowHeight, "F");
+      }
+
+      doc.setDrawColor(...COLORS.border);
+      doc.rect(marginLeft, y, tableWidth, rowHeight, "S");
+      doc.line(marginLeft + colWidths[0], y, marginLeft + colWidths[0], y + rowHeight);
+      doc.line(marginLeft + colWidths[0] + colWidths[1], y, marginLeft + colWidths[0] + colWidths[1], y + rowHeight);
+
+      // Priority
+      const prioColor = item.priority === "high" ? COLORS.high :
+                        item.priority === "medium" ? COLORS.needs_review : COLORS.secondary_text;
+      doc.setTextColor(...prioColor);
+      doc.setFont("helvetica", "bold");
+      doc.text(item.priority.toUpperCase(), marginLeft + 2, y + 6.5);
+
+      // Action (wrap text)
+      doc.setTextColor(...COLORS.secondary_text);
+      doc.setFont("helvetica", "normal");
+      const actionLines = doc.splitTextToSize(item.action, colWidths[1] - 4);
+      doc.text(actionLines[0], marginLeft + colWidths[0] + 2, y + 6.5);
+
+      // Rule ID
+      doc.setTextColor(...COLORS.muted_text);
+      const ruleShort = item.related_rule_id.replace("RULE_HIPAA_", "R");
+      doc.text(ruleShort, marginLeft + colWidths[0] + colWidths[1] + 2, y + 6.5);
+
+      y += rowHeight;
+    }
+    y += 4;
+  };
 
   // =========================================================================
-  // SECTION 3: Executive Summary (with Risk Bar Visual)
+  // VISUAL HELPER: Disclaimer Box
   // =========================================================================
-  checkPageBreak(70);
-  addText("3. Executive Summary", 14, "bold");
+  const drawDisclaimerBox = () => {
+    // Box header
+    doc.setDrawColor(...COLORS.high);
+    doc.setLineWidth(0.5);
+    doc.setFillColor(255, 250, 250);
+    doc.rect(marginLeft, y, contentWidth, 12, "FD");
+
+    y += 8;
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...COLORS.high);
+    doc.text("IMPORTANT DISCLAIMERS", PDF_CONFIG.pageWidth / 2, y, { align: "center" });
+
+    y += 8;
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...COLORS.high);
+    doc.text("PLEASE READ BEFORE RELYING ON THIS REPORT", marginLeft, y);
+
+    y += 6;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(...COLORS.secondary_text);
+
+    for (const disclaimer of report.disclaimers) {
+      checkPageBreak(10);
+      const lines = doc.splitTextToSize(`${SYMBOLS.bullet} ${disclaimer}`, contentWidth - 4);
+      doc.text(lines, marginLeft + 2, y);
+      y += lines.length * 4 + 2;
+    }
+  };
+
+  // =========================================================================
+  // PAGE 1: COVER PAGE
+  // =========================================================================
+  drawCoverPage();
+
+  // =========================================================================
+  // PAGE 2: EXECUTIVE SUMMARY
+  // =========================================================================
+  startNewPage();
+  addText("2. Executive Summary", 14, "bold");
   addSpacer(2);
   addText(`Use Case: ${report.executive_summary.use_case_name}`, 10);
-  addSpacer(4);
+  addSpacer(6);
 
-  // Risk Classification with Visual Bar
   addText("Risk Classification:", 10, "bold");
-  addSpacer(2);
+  addSpacer(4);
   drawRiskSummaryBar(report.executive_summary.risk_classification);
-  addSpacer(2);
-
-  // Status badge
-  const statusColor: [number, number, number] =
-    report.executive_summary.status === "Non-Compliant" ? [139, 0, 0] :
-    report.executive_summary.status === "Needs Manual Review" ? [180, 140, 60] : [60, 120, 60];
-  addText(`Status: ${report.executive_summary.status}`, 10, "bold", statusColor);
   addSpacer(4);
 
-  // Findings Breakdown Visual
+  const statusColor: [number, number, number] =
+    report.executive_summary.status === "Non-Compliant" ? COLORS.high :
+    report.executive_summary.status === "Needs Manual Review" ? COLORS.needs_review : COLORS.low;
+  addText(`Status: ${report.executive_summary.status}`, 10, "bold", statusColor);
+  addSpacer(6);
+
   addText("Findings Summary:", 10, "bold");
   addSpacer(2);
   drawFindingsBreakdown(report.triggered_safeguards);
+  addSpacer(4);
 
   addText(`Vendors Analyzed: ${report.executive_summary.vendor_count}`, 10);
+  addText(`Confidence Score: ${(report.risk_classification.confidence_score * 100).toFixed(0)}%`, 10);
   addSpacer(6);
 
-  // =========================================================================
-  // SECTION 4: AI Use Case Overview
-  // =========================================================================
-  checkPageBreak(40);
-  addText("4. AI Use Case Overview", 14, "bold");
-  addText(`Organization Type: ${report.use_case_overview.organization_type}`, 10);
-  addText(`AI Function: ${report.use_case_overview.ai_function}`, 10);
-  addText(`PHI Involved: ${formatBoolean(report.use_case_overview.phi_involved)}`, 10);
-  if (report.use_case_overview.phi_types.length > 0) {
-    addText(`PHI Types: ${report.use_case_overview.phi_types.join(", ")}`, 10);
+  if (report.risk_classification.determining_factors.length > 0) {
+    addText("Key Determining Factors:", 10, "bold");
+    for (const factor of report.risk_classification.determining_factors.slice(0, 5)) {
+      addText(`  ${SYMBOLS.bullet} ${factor}`, 9, "normal", COLORS.secondary_text);
+    }
   }
-  addText(`Environment: ${report.use_case_overview.environment}`, 10);
-  addText(`Input: ${report.use_case_overview.input_source}`, 10);
-  addText(`Output: ${report.use_case_overview.output_destination}`, 10);
-  addSpacer(6);
 
   // =========================================================================
-  // SECTION 5: PHI Exposure Mapping
+  // PAGE 3: ASSESSMENT SCOPE
   // =========================================================================
+  startNewPage();
+  addText("3. Assessment Scope & Limitations", 14, "bold");
+  addSpacer(4);
+
+  addText("3.1 What This Assessment Covers", 11, "bold");
+  for (const item of report.assessment_scope.what_this_covers) {
+    checkPageBreak(12);
+    addText(`${SYMBOLS.bullet} ${item}`, 9, "normal", COLORS.secondary_text);
+  }
+  addSpacer(4);
+
   checkPageBreak(40);
-  addText("5. PHI Exposure Mapping", 14, "bold");
-  addText(`Logging Behavior: ${report.phi_exposure_mapping.logging_behavior}`, 10);
-  addText(`Retention Defined: ${formatBoolean(report.phi_exposure_mapping.retention_period_defined)}`, 10);
-  addText(`Access Controls Documented: ${formatBoolean(report.phi_exposure_mapping.access_controls_documented)}`, 10);
-  addText(`Exposure Risk Level: ${report.phi_exposure_mapping.exposure_risk_level.toUpperCase()}`, 10, "bold");
-  addSpacer(6);
+  addText("3.2 What This Assessment Does Not Cover", 11, "bold");
+  for (const item of report.assessment_scope.what_this_does_not_cover) {
+    checkPageBreak(12);
+    addText(`${SYMBOLS.bullet} ${item}`, 9, "normal", COLORS.secondary_text);
+  }
+  addSpacer(4);
+
+  checkPageBreak(40);
+  addText("3.3 When to Re-Run This Assessment", 11, "bold");
+  for (const item of report.assessment_scope.when_to_rerun) {
+    checkPageBreak(12);
+    addText(`${SYMBOLS.bullet} ${item}`, 9, "normal", COLORS.secondary_text);
+  }
 
   // =========================================================================
-  // SECTION 6: Vendor & BAA Analysis
+  // PAGE 4: HOW TEAMS USE THIS REPORT
   // =========================================================================
-  if (report.vendor_analysis.vendors.length > 0) {
-    checkPageBreak(60);
-    addText("6. Vendor & BAA Analysis", 14, "bold");
-    addText(`Overall Vendor Risk: ${report.vendor_analysis.overall_vendor_risk.toUpperCase()}`, 10, "bold");
-    addSpacer(3);
+  startNewPage();
+  addText("4. How Compliance Teams Use This Report", 14, "bold");
+  addSpacer(4);
+  for (const item of report.assessment_scope.how_teams_use_this) {
+    checkPageBreak(12);
+    addText(`${SYMBOLS.bullet} ${item}`, 9, "normal", COLORS.secondary_text);
+  }
 
-    for (const vendor of report.vendor_analysis.vendors) {
-      checkPageBreak(25);
-      addText(`${vendor.vendor_name} (${vendor.role})`, 10, "bold");
-      addText(`  BAA: ${vendor.baa_status} | Storage: ${vendor.data_storage} | Logging: ${vendor.logging_enabled}`, 9, "normal", [60, 60, 60]);
-      if (vendor.risk_factors.length > 0) {
-        addText(`  Risk Factors: ${vendor.risk_factors.join(", ")}`, 9, "normal", [150, 60, 60]);
+  // =========================================================================
+  // PAGE 5: AI USE CASE PROFILE
+  // =========================================================================
+  startNewPage();
+  addText("5. AI Use Case Profile", 14, "bold");
+  addSpacer(4);
+
+  // Organization & Deployment table
+  addText("Organization & Deployment:", 10, "bold");
+  addSpacer(2);
+  addText(`  Organization Type: ${report.use_case_overview.organization_type.replace(/_/g, " ")}`, 9, "normal", COLORS.secondary_text);
+  addText(`  Environment: ${report.use_case_overview.environment}`, 9, "normal", COLORS.secondary_text);
+  addText(`  AI Function: ${report.use_case_overview.ai_function}`, 9, "normal", COLORS.secondary_text);
+  addSpacer(4);
+
+  addText("Data Flow:", 10, "bold");
+  addSpacer(2);
+  addText(`  Input Source: ${report.use_case_overview.input_source}`, 9, "normal", COLORS.secondary_text);
+  addText(`  Output Destination: ${report.use_case_overview.output_destination}`, 9, "normal", COLORS.secondary_text);
+  addText(`  PHI Involved: ${formatBoolean(report.use_case_overview.phi_involved)}`, 9, "normal", COLORS.secondary_text);
+  if (report.use_case_overview.phi_types.length > 0 && report.use_case_overview.phi_types[0]) {
+    addText(`  PHI Types: ${report.use_case_overview.phi_types.filter(t => t).join(", ")}`, 9, "normal", COLORS.secondary_text);
+  }
+
+  // =========================================================================
+  // PAGE 6: PHI EXPOSURE ANALYSIS
+  // =========================================================================
+  startNewPage();
+  addText("6. PHI Exposure Analysis", 14, "bold");
+  addSpacer(4);
+  drawPHIExposureTable();
+
+  // =========================================================================
+  // PAGE 7: VENDOR & BAA ANALYSIS
+  // =========================================================================
+  startNewPage();
+  addText("7. Vendor & BAA Analysis", 14, "bold");
+  addSpacer(4);
+  drawVendorTable();
+
+  // Vendor risk factors detail
+  if (report.vendor_analysis.vendors.some(v => v.risk_factors.length > 0)) {
+    addSpacer(4);
+    addText("Vendor Risk Factor Details:", 10, "bold");
+    for (const vendor of report.vendor_analysis.vendors.filter(v => v.risk_factors.length > 0)) {
+      checkPageBreak(15);
+      addText(`  ${vendor.vendor_name}:`, 9, "bold", COLORS.secondary_text);
+      for (const rf of vendor.risk_factors) {
+        addText(`    ${SYMBOLS.bullet} ${rf}`, 8, "normal", COLORS.high);
       }
     }
-    addSpacer(6);
   }
 
   // =========================================================================
-  // SECTION 7: Triggered HIPAA Safeguards
+  // PAGE 8: TRIGGERED SAFEGUARDS
   // =========================================================================
-  checkPageBreak(50);
-  addText("7. Triggered HIPAA Safeguards", 14, "bold");
+  startNewPage();
+  addText("8. Triggered HIPAA Safeguards", 14, "bold");
+  addSpacer(4);
+
   if (report.triggered_safeguards.length === 0) {
-    addText("No safeguard concerns identified.", 10, "normal", [60, 60, 60]);
+    addText("No safeguard concerns identified.", 10, "normal", COLORS.secondary_text);
   } else {
-    for (const safeguard of report.triggered_safeguards) {
-      checkPageBreak(25);
-      const riskColor: [number, number, number] =
-        safeguard.risk_level === "high" ? [180, 60, 60] :
-        safeguard.risk_level === "needs_review" ? [180, 140, 60] : [60, 140, 60];
-      addText(`[${safeguard.risk_level.toUpperCase()}] ${safeguard.description}`, 10, "bold", riskColor);
-      addText(`  Category: ${safeguard.category}`, 9, "normal", [60, 60, 60]);
-      addText(`  ${safeguard.explanation}`, 9, "normal", [80, 80, 80]);
-    }
-  }
-  addSpacer(6);
+    // Group by category
+    const categories = [...new Set(report.triggered_safeguards.map(s => s.category))];
 
-  // =========================================================================
-  // SECTION 8: Risk Classification
-  // =========================================================================
-  checkPageBreak(40);
-  addText("8. Risk Classification", 14, "bold");
-  addText(`Overall Risk: ${report.risk_classification.overall_risk}`, 11, "bold");
-  addText(`Confidence Score: ${(report.risk_classification.confidence_score * 100).toFixed(0)}%`, 10);
-  if (report.risk_classification.determining_factors.length > 0) {
-    addText("Determining Factors:", 10, "bold");
-    for (const factor of report.risk_classification.determining_factors) {
-      checkPageBreak(10);
-      addText(`  - ${factor}`, 9, "normal", [60, 60, 60]);
-    }
-  }
-  addSpacer(6);
+    for (const category of categories) {
+      checkPageBreak(30);
+      addText(category, 11, "bold");
+      addSpacer(2);
 
-  // =========================================================================
-  // SECTION 9: Remediation Checklist
-  // =========================================================================
-  if (report.remediation_checklist.length > 0) {
-    checkPageBreak(50);
-    addText("9. Remediation Checklist", 14, "bold");
-    for (const item of report.remediation_checklist) {
-      checkPageBreak(15);
-      const priorityColor: [number, number, number] =
-        item.priority === "high" ? [180, 60, 60] :
-        item.priority === "medium" ? [180, 140, 60] : [60, 60, 60];
-      addText(`[${item.priority.toUpperCase()}] ${item.action}`, 9, "normal", priorityColor);
+      const safeguardsInCategory = report.triggered_safeguards.filter(s => s.category === category);
+      for (const safeguard of safeguardsInCategory) {
+        checkPageBreak(20);
+        const riskColor: [number, number, number] =
+          safeguard.risk_level === "high" ? COLORS.high :
+          safeguard.risk_level === "needs_review" ? COLORS.needs_review : COLORS.low;
+
+        addText(`[${safeguard.risk_level.toUpperCase()}] ${safeguard.description}`, 9, "bold", riskColor);
+        addText(`  ${safeguard.explanation}`, 8, "normal", COLORS.secondary_text);
+        addSpacer(2);
+      }
+      addSpacer(4);
     }
-    addSpacer(6);
   }
 
   // =========================================================================
-  // SECTION 10: Legal References
+  // PAGE 9: REMEDIATION CHECKLIST
   // =========================================================================
-  checkPageBreak(50);
+  startNewPage();
+  addText("9. Remediation Checklist", 14, "bold");
+  addSpacer(4);
+  drawRemediationTable();
+
+  // =========================================================================
+  // PAGE 10: LEGAL REFERENCES & DISCLAIMERS
+  // =========================================================================
+  startNewPage();
   addText("10. Legal References", 14, "bold");
-  for (const ref of report.legal_references.slice(0, 10)) {
-    checkPageBreak(15);
-    addText(`${ref.citation}`, 9, "bold");
-    addText(`  ${ref.description}`, 9, "normal", [60, 60, 60]);
-  }
-  if (report.legal_references.length > 10) {
-    addText(`  ...and ${report.legal_references.length - 10} more references`, 9, "normal", [100, 100, 100]);
-  }
-  addSpacer(8);
+  addSpacer(4);
 
-  // =========================================================================
-  // SECTION 11: Disclaimers (Enhanced, prominent block)
-  // =========================================================================
-  checkPageBreak(80);
-  addText("11. Important Disclaimers", 14, "bold");
-  addSpacer(2);
-  addText("PLEASE READ CAREFULLY:", 10, "bold", [139, 0, 0]);
-  addSpacer(2);
-  for (const disclaimer of report.disclaimers) {
+  for (const ref of report.legal_references.slice(0, 15)) {
     checkPageBreak(12);
-    addText(`• ${disclaimer}`, 9, "normal", [60, 60, 60]);
+    addText(`${ref.citation}`, 9, "bold");
+    addText(`  ${ref.description}`, 8, "normal", COLORS.secondary_text);
   }
-  addSpacer(8);
+  if (report.legal_references.length > 15) {
+    addText(`  ...and ${report.legal_references.length - 15} additional references`, 8, "normal", COLORS.muted_text);
+  }
+
+  addSpacer(10);
+  checkPageBreak(100);
+  drawDisclaimerBox();
 
   // =========================================================================
-  // FOOTER: Report Metadata
+  // FINAL FOOTER
   // =========================================================================
-  checkPageBreak(30);
-  addText("─".repeat(60), 8, "normal", [180, 180, 180]);
-  addSpacer(2);
-  addText(`Tool Version: ${report.tool_version}`, 8, "normal", [120, 120, 120]);
-  addText("This report was generated by a deterministic, rules-based assessment system.", 8, "normal", [120, 120, 120]);
+  addSpacer(8);
+  doc.setDrawColor(...COLORS.divider);
+  doc.line(marginLeft, y, marginLeft + contentWidth, y);
+  addSpacer(4);
+  addText(`Tool Version: ${report.tool_version}`, 8, "normal", COLORS.light_text);
+  addText("This report was generated by a deterministic, rules-based assessment system.", 8, "normal", COLORS.light_text);
+  addText("No AI inference was used in the assessment logic.", 8, "normal", COLORS.light_text);
+
+  // Final page footer
+  addPageFooter();
 
   doc.save(filename);
 }
