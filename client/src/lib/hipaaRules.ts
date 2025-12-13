@@ -129,7 +129,7 @@ export const HIPAA_RULES: HIPAARule[] = [
     id: "RULE_HIPAA_010",
     description: "Fully Characterized Low-Risk PHI Use",
     explanation:
-      "This use case demonstrates comprehensive HIPAA safeguards: confirmed BAAs with all vendors, appropriate logging controls (none or transient), defined retention period, and documented access controls.",
+      "This use case demonstrates comprehensive HIPAA safeguards: confirmed BAAs with all vendors, appropriate logging controls (none or transient), NO vendor logging enabled, defined retention period, and documented access controls.",
     citations: ["45 CFR §164.308", "45 CFR §164.312"],
     riskContribution: "low",
     safeguard_category: "organizational",
@@ -138,9 +138,36 @@ export const HIPAA_RULES: HIPAARule[] = [
       if (vendors.length === 0) return false;
       const allBaasConfirmed = vendors.every(v => v.baa_available === true);
       const loggingOk = profile.logging_behavior === "none" || profile.logging_behavior === "transient";
+      const noVendorLogging = vendors.every(v => v.logging_enabled !== true);
       const retentionDefined = profile.retention_period_defined === true;
       const accessControlsDocumented = profile.access_controls_documented === true;
-      return allBaasConfirmed && loggingOk && retentionDefined && accessControlsDocumented;
+      return allBaasConfirmed && loggingOk && noVendorLogging && retentionDefined && accessControlsDocumented;
+    },
+  },
+  {
+    id: "RULE_HIPAA_011",
+    description: "Vendor Logging PHI Data",
+    explanation:
+      "When PHI is involved and any vendor has logging enabled, PHI may be captured in vendor logs. This creates audit trail requirements and potential data retention concerns that must be reviewed.",
+    citations: ["45 CFR §164.312(b)"],
+    riskContribution: "needs_review",
+    safeguard_category: "technical",
+    condition: (profile, vendors) => {
+      if (profile.phi_involved !== true) return false;
+      return vendors.some(v => v.logging_enabled === true);
+    },
+  },
+  {
+    id: "RULE_HIPAA_012",
+    description: "Logging Configuration Inconsistency",
+    explanation:
+      "The use case declares logging_behavior as 'none' but one or more vendors have logging enabled. This inconsistency must be resolved - either vendor logging should be disabled or the use case logging declaration should be updated.",
+    citations: ["45 CFR §164.312(b)", "45 CFR §164.308(a)(1)(ii)(A)"],
+    riskContribution: "needs_review",
+    safeguard_category: "administrative",
+    condition: (profile, vendors) => {
+      if (profile.logging_behavior !== "none") return false;
+      return vendors.some(v => v.logging_enabled === true);
     },
   },
 ];
