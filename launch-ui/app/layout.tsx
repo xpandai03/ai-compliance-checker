@@ -8,9 +8,8 @@ const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Shaders Landing Page",
-  description: "Created with v0",
-  generator: "v0.app",
+  title: "AI HIPAA CHECK",
+  description: "HIPAA AI risk assessment beta — deterministic, rules-based, not legal advice.",
 }
 
 export default function RootLayout({
