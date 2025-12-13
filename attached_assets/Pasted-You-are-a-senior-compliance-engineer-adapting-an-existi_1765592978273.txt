@@ -1,0 +1,271 @@
+You are a senior compliance engineer adapting an existing **deterministic audit kernel** to support **HIPAA AI Risk Assessments**.
+
+This system is **not** a chatbot and **must not** use LLM reasoning to decide compliance.
+
+Your job is to **adapt**, not redesign.
+
+* * * * *
+
+**🔑 Core Constraints (DO NOT VIOLATE)**
+----------------------------------------
+
+1.  **The audit kernel must remain deterministic**
+
+    -   Rules trigger based on explicit inputs
+
+    -   No probabilistic reasoning
+
+    -   No "AI judgment" of compliance
+
+2.  **No legal advice**
+
+    -   Output is a *risk assessment*, not certification
+
+    -   Conservative defaults
+
+    -   Unknowns → risk, not pass
+
+3.  **No RAG-driven decisions**
+
+    -   RAG (if used) is strictly read-only for explanations
+
+    -   Compliance outcomes come only from rules
+
+4.  **Preserve auditability**
+
+    -   Every conclusion must trace back to:
+
+        -   inputs
+
+        -   metadata
+
+        -   triggered rules
+
+        -   legal citations
+
+* * * * *
+
+**🎯 Objective**
+----------------
+
+Adapt the existing EU AI Act audit kernel to produce a **HIPAA AI Risk Assessment** for AI use cases involving potential PHI exposure.
+
+The end result should:
+
+-   Accept a HIPAA-specific AI use case intake
+
+-   Apply a deterministic HIPAA ruleset
+
+-   Output:
+
+    -   Risk classification (LOW / NEEDS REVIEW / HIGH)
+
+    -   Triggered safeguards
+
+    -   Clear remediation checklist
+
+    -   Exportable report structure
+
+* * * * *
+
+**🧩 Step 1 --- Add HIPAA AI Use Case Intake (DO NOT REMOVE EXISTING)**
+---------------------------------------------------------------------
+
+Create a new intake schema **alongside** the existing ModelProfile:
+
+```
+HIPAAUseCaseProfile {
+  use_case_name: string
+  organization_type: "covered_entity" | "business_associate" | "neither" | "unknown"
+  ai_function: "chat" | "summarization" | "transcription" | "coding" | "other"
+  phi_involved: boolean | "unknown"
+  phi_types: string[] // free_text, structured, images, audio
+  input_source: string // EHR, uploads, notes, dictation
+  output_destination: string // user_only, stored, downstream_system
+  environment: "prod" | "staging" | "dev"
+  logging_behavior: "none" | "transient" | "retained" | "unknown"
+  retention_period_defined: boolean | "unknown"
+  access_controls_documented: boolean | "unknown"
+  vendors_used: {
+    vendor_name: string
+    role: string
+  }[]
+}
+```
+
+Rules must accept "unknown" explicitly.
+
+* * * * *
+
+**🧩 Step 2 --- Add Vendor PHI Metadata Model**
+---------------------------------------------
+
+Extend the existing provider metadata system to support HIPAA-relevant vendor facts:
+
+```
+VendorPHIMetadata {
+  vendor_name: string
+  baa_available: boolean | "unknown"
+  data_storage: "none" | "transient" | "stored" | "unknown"
+  logging_enabled: boolean | "unknown"
+  access_controls_documented: boolean | "unknown"
+  source: string
+  confidence: "high" | "medium" | "low"
+}
+```
+
+Do NOT infer missing values.
+
+Unknowns must remain unknown.
+
+* * * * *
+
+**🧩 Step 3 --- Implement HIPAA v0 Ruleset (10--15 Rules)**
+--------------------------------------------------------
+
+Create a **new ruleset file** (do not overwrite EU AI Act rules).
+
+Rules must:
+
+-   Be explicit
+
+-   Be boolean
+
+-   Reference HIPAA Security / Privacy Rule sections
+
+-   Fail conservatively
+
+### **Example Rule Structure**
+
+```
+RULE_HIPAA_001 {
+  condition:
+    phi_involved === true &&
+    vendor.baa_available !== true
+  outcome:
+    risk = "HIGH"
+  citation:
+    "45 CFR §164.308(b)(1)"
+  explanation:
+    "PHI is disclosed to a vendor without an active Business Associate Agreement."
+}
+```
+
+### **Required Rule Categories**
+
+Include rules for:
+
+-   PHI exposure
+
+-   Missing BAAs
+
+-   Logging of PHI
+
+-   Undefined retention
+
+-   Undocumented access controls
+
+-   Use of AI vendors in production with PHI
+
+-   Unknowns involving PHI
+
+Target **10--15 total rules**.
+
+* * * * *
+
+**🧩 Step 4 --- Risk Aggregation (Reuse Existing Logic)**
+-------------------------------------------------------
+
+DO NOT change aggregation logic.
+
+Confirm:
+
+-   HIGH overrides all
+
+-   NEEDS REVIEW used for uncertainty
+
+-   LOW only when all required safeguards are satisfied
+
+* * * * *
+
+**🧩 Step 5 --- HIPAA Report Output Structure (No UI Redesign)**
+--------------------------------------------------------------
+
+Create a new report type:
+
+**HIPAA AI Risk Assessment**
+
+Sections:
+
+1.  Executive Summary
+
+2.  AI Use Case Overview
+
+3.  PHI Exposure Mapping
+
+4.  Vendor & BAA Analysis
+
+5.  Triggered HIPAA Safeguards
+
+6.  Risk Classification
+
+7.  Remediation Checklist
+
+8.  Legal References & Excerpts
+
+9.  Disclaimers + Version Metadata
+
+Output structure must be compatible with:
+
+-   PDF
+
+-   JSON
+
+* * * * *
+
+**🚫 Explicitly Do NOT Do**
+---------------------------
+
+-   Do NOT add scoring (no percentages)
+
+-   Do NOT add chat features
+
+-   Do NOT introduce free-form legal interpretation
+
+-   Do NOT auto-remediate
+
+-   Do NOT claim compliance or certification
+
+* * * * *
+
+**✅ Definition of Done (Replit Phase)**
+---------------------------------------
+
+This task is complete when:
+
+-   A HIPAA AI use case can be entered
+
+-   The kernel produces a deterministic risk outcome
+
+-   A credible HIPAA report is generated
+
+-   EU AI Act functionality still works unchanged
+
+* * * * *
+
+**🧠 Final Reminder**
+---------------------
+
+This system is:
+
+> a **risk assessment engine**, not a legal authority.
+
+Optimize for:
+
+-   defensibility
+
+-   clarity
+
+-   conservative judgment
+
+Proceed step by step and show diffs where possible.
