@@ -5,6 +5,14 @@ export interface HIPAAComplianceReport {
   generated_at: string;
   tool_version: string;
 
+  // Assessment scope sections - static copy, no logic dependency
+  assessment_scope: {
+    what_this_covers: string[];
+    what_this_does_not_cover: string[];
+    when_to_rerun: string[];
+    how_teams_use_this: string[];
+  };
+
   executive_summary: {
     use_case_name: string;
     risk_classification: "HIGH" | "NEEDS_REVIEW" | "LOW";
@@ -74,13 +82,68 @@ export interface HIPAAComplianceReport {
 
 const TOOL_VERSION = "v0.3-demo";
 
+// =============================================================================
+// ASSESSMENT SCOPE COPY - Static, enterprise-grade content
+// These sections contain NO logic, NO conditionals, NO findings references
+// =============================================================================
+
+const ASSESSMENT_SCOPE_COPY = {
+  what_this_covers: [
+    "This assessment evaluates a specific AI use case against selected requirements of the HIPAA Security Rule (45 CFR Part 164, Subpart C), with particular focus on:",
+    "Administrative Safeguards related to third-party vendor relationships and Business Associate Agreement (BAA) requirements.",
+    "Technical Safeguards concerning audit controls, access controls, and logging practices for systems that may process Protected Health Information (PHI).",
+    "Organizational Requirements for documenting data handling practices, retention policies, and access control mechanisms.",
+    "This assessment operates at the USE CASE level. It evaluates the specific AI deployment described in the intake form based on the information provided.",
+    "All findings are derived from deterministic rule evaluation against user-supplied inputs. No inference, prediction, or AI-based reasoning is used in the assessment logic.",
+  ],
+  what_this_does_not_cover: [
+    "HIPAA Privacy Rule compliance (45 CFR Part 164, Subpart E) beyond BAA-related provisions.",
+    "Workforce training, sanctions policies, or personnel security measures.",
+    "Physical safeguards (facility access controls, workstation security, device and media controls).",
+    "Breach notification policies and procedures (45 CFR §164.400-414).",
+    "State-specific health privacy laws or other regulatory frameworks.",
+    "Organization-wide HIPAA compliance posture — this assessment is scoped to a single AI use case.",
+    "Legal sufficiency of existing Business Associate Agreements.",
+    "Technical penetration testing or vulnerability assessment.",
+    "This report does not constitute: legal advice or legal opinion, HIPAA certification or attestation, regulatory approval or clearance, or audit by a qualified independent assessor.",
+  ],
+  when_to_rerun: [
+    "VENDOR CHANGES: New AI vendor relationships are established, existing vendor BAA status changes, or vendor data handling practices are modified.",
+    "LOGGING & DATA HANDLING CHANGES: Logging configuration is enabled, disabled, or modified; data retention policies are updated; new PHI data types are introduced to the use case.",
+    "ENVIRONMENT CHANGES: Use case moves from development/staging to production, infrastructure hosting the AI system changes, or access control mechanisms are modified.",
+    "ORGANIZATIONAL CHANGES: Organization's HIPAA classification changes, or merger/acquisition/restructuring affects use case ownership.",
+    "MATERIAL ARCHITECTURE CHANGES: AI model provider changes, data flow architecture is modified, or new integrations that affect PHI handling are added.",
+    "Re-assessment frequency: At minimum, consider annual re-assessment even absent the triggers above, as part of standard compliance review cycles.",
+  ],
+  how_teams_use_this: [
+    "INTERNAL RISK REVIEW: Identifying potential HIPAA compliance gaps before production deployment, prioritizing remediation activities based on risk severity, documenting risk acceptance decisions with supporting rationale.",
+    "VENDOR DUE DILIGENCE: Evaluating AI vendor relationships against BAA requirements, identifying vendors requiring BAA execution or review, supporting vendor risk assessment workflows.",
+    "AUDIT PREPARATION: Providing documentation of compliance considerations for internal audits, supporting evidence collection for external assessments, demonstrating due diligence in AI deployment decisions.",
+    "GOVERNANCE DOCUMENTATION: Maintaining records of compliance evaluations for AI use cases, supporting AI governance program documentation requirements, providing input for risk register updates.",
+    "DECISION SUPPORT: Informing go/no-go decisions for AI deployments involving PHI, identifying conditions or controls required before deployment approval, supporting exception request justifications.",
+    "This report is intended to supplement—not replace—comprehensive HIPAA compliance programs, qualified legal counsel, and independent assessments.",
+  ],
+};
+
+// =============================================================================
+// DISCLAIMERS - Enhanced with conservative, legally defensive language
+// =============================================================================
+
 const HIPAA_DISCLAIMERS = [
+  // Core disclaimers (original)
   "This report is generated by a deterministic rules-based system.",
   "This report does not constitute legal advice and should not be relied upon as such.",
   "Regulatory references are provided for traceability only.",
   "This assessment does not certify HIPAA compliance or non-compliance.",
   "Organizations should consult qualified legal and compliance professionals for HIPAA guidance.",
   "This tool assesses risk based on user-provided inputs; accuracy depends on input completeness.",
+  // Enhanced disclaimers (additive)
+  "This assessment is scoped to a single AI use case and does not evaluate organization-wide HIPAA compliance posture.",
+  "Findings reflect the state of inputs at the time of assessment; changes to vendors, configurations, or data flows may invalidate conclusions.",
+  "This tool does not perform technical security testing, penetration testing, or vulnerability assessment.",
+  "Business Associate Agreement (BAA) status is based on user attestation and has not been independently verified.",
+  "This report is intended as a compliance planning aid and should be reviewed by qualified personnel before use in regulatory submissions.",
+  "The absence of findings does not guarantee HIPAA compliance; comprehensive compliance requires controls beyond the scope of this assessment.",
 ];
 
 const HIPAA_CITATION_DESCRIPTIONS: Record<string, string> = {
@@ -270,6 +333,14 @@ export function generateHIPAAComplianceReport(
     generated_at: new Date().toISOString(),
     tool_version: TOOL_VERSION,
 
+    // Assessment scope - static copy, no logic dependency
+    assessment_scope: {
+      what_this_covers: ASSESSMENT_SCOPE_COPY.what_this_covers,
+      what_this_does_not_cover: ASSESSMENT_SCOPE_COPY.what_this_does_not_cover,
+      when_to_rerun: ASSESSMENT_SCOPE_COPY.when_to_rerun,
+      how_teams_use_this: ASSESSMENT_SCOPE_COPY.how_teams_use_this,
+    },
+
     executive_summary: {
       use_case_name: profile.use_case_name,
       risk_classification: riskClassification,
@@ -385,20 +456,202 @@ export async function exportHIPAAReportAsPDF(report: HIPAAComplianceReport, useC
     }
   };
 
+  // =========================================================================
+  // VISUAL HELPER: Risk Summary Bar
+  // Draws a horizontal bar showing LOW | NEEDS_REVIEW | HIGH with marker
+  // =========================================================================
+  const drawRiskSummaryBar = (riskLevel: "HIGH" | "NEEDS_REVIEW" | "LOW") => {
+    const barHeight = 8;
+    const barWidth = contentWidth;
+    const segmentWidth = barWidth / 3;
+
+    // Draw the three segments with muted colors
+    // LOW segment (left)
+    doc.setFillColor(200, 220, 200); // Muted green
+    doc.rect(marginLeft, y, segmentWidth, barHeight, "F");
+
+    // NEEDS_REVIEW segment (middle)
+    doc.setFillColor(220, 210, 180); // Muted amber
+    doc.rect(marginLeft + segmentWidth, y, segmentWidth, barHeight, "F");
+
+    // HIGH segment (right)
+    doc.setFillColor(220, 190, 190); // Muted red
+    doc.rect(marginLeft + segmentWidth * 2, y, segmentWidth, barHeight, "F");
+
+    // Draw border around entire bar
+    doc.setDrawColor(120, 120, 120);
+    doc.setLineWidth(0.3);
+    doc.rect(marginLeft, y, barWidth, barHeight, "S");
+
+    // Draw segment dividers
+    doc.line(marginLeft + segmentWidth, y, marginLeft + segmentWidth, y + barHeight);
+    doc.line(marginLeft + segmentWidth * 2, y, marginLeft + segmentWidth * 2, y + barHeight);
+
+    // Calculate marker position based on risk level
+    let markerX = marginLeft + segmentWidth / 2; // Default: LOW (center of first segment)
+    if (riskLevel === "NEEDS_REVIEW") {
+      markerX = marginLeft + segmentWidth * 1.5; // Center of middle segment
+    } else if (riskLevel === "HIGH") {
+      markerX = marginLeft + segmentWidth * 2.5; // Center of last segment
+    }
+
+    // Draw marker (inverted triangle pointing down) using lines
+    const markerSize = 4;
+    doc.setFillColor(40, 40, 40);
+    // Draw filled triangle using polygon path
+    const trianglePoints = [
+      [markerX - markerSize, y - 1],
+      [markerX + markerSize, y - 1],
+      [markerX, y + 3]
+    ];
+    doc.setDrawColor(40, 40, 40);
+    doc.lines(
+      [
+        [markerSize * 2, 0],      // right edge
+        [-markerSize, 4],         // down to bottom point
+        [-markerSize, -4]         // back to start
+      ],
+      markerX - markerSize,
+      y - 1,
+      [1, 1],
+      "F"
+    );
+
+    // Add labels below the bar
+    y += barHeight + 2;
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(80, 80, 80);
+    doc.text("LOW", marginLeft + segmentWidth / 2, y + 3, { align: "center" });
+    doc.text("NEEDS REVIEW", marginLeft + segmentWidth * 1.5, y + 3, { align: "center" });
+    doc.text("HIGH", marginLeft + segmentWidth * 2.5, y + 3, { align: "center" });
+
+    y += 8;
+  };
+
+  // =========================================================================
+  // VISUAL HELPER: Findings Breakdown
+  // Shows count of findings by severity level
+  // =========================================================================
+  const drawFindingsBreakdown = (triggeredSafeguards: HIPAAComplianceReport["triggered_safeguards"]) => {
+    const highCount = triggeredSafeguards.filter(s => s.risk_level === "high").length;
+    const needsReviewCount = triggeredSafeguards.filter(s => s.risk_level === "needs_review").length;
+    const lowCount = triggeredSafeguards.filter(s => s.risk_level === "low").length;
+    const total = triggeredSafeguards.length;
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+
+    // HIGH findings
+    doc.setFillColor(139, 0, 0);
+    doc.rect(marginLeft, y, 3, 3, "F");
+    doc.setTextColor(60, 60, 60);
+    doc.text(`  HIGH RISK: ${highCount} finding${highCount !== 1 ? "s" : ""}`, marginLeft + 4, y + 2.5);
+    y += 5;
+
+    // NEEDS_REVIEW findings
+    doc.setFillColor(180, 140, 60);
+    doc.rect(marginLeft, y, 3, 3, "F");
+    doc.text(`  NEEDS REVIEW: ${needsReviewCount} finding${needsReviewCount !== 1 ? "s" : ""}`, marginLeft + 4, y + 2.5);
+    y += 5;
+
+    // LOW findings
+    doc.setFillColor(60, 140, 60);
+    doc.rect(marginLeft, y, 3, 3, "F");
+    doc.text(`  LOW RISK: ${lowCount} finding${lowCount !== 1 ? "s" : ""}`, marginLeft + 4, y + 2.5);
+    y += 5;
+
+    // Total
+    doc.setDrawColor(150, 150, 150);
+    doc.line(marginLeft, y, marginLeft + 60, y);
+    y += 3;
+    doc.setFont("helvetica", "bold");
+    doc.text(`Total Safeguards Evaluated: ${total}`, marginLeft, y + 2);
+    y += 6;
+  };
+
   addText("HIPAA AI Risk Assessment Report", 18, "bold");
   addText("Deterministic, Rules-Based Analysis", 11, "normal", [100, 100, 100]);
+  addSpacer(4);
+  addText(`Report ID: ${report.report_id}`, 8, "normal", [100, 100, 100]);
+  addText(`Generated: ${new Date(report.generated_at).toLocaleString()}`, 8, "normal", [100, 100, 100]);
   addSpacer(8);
 
-  addText("1. Executive Summary", 14, "bold");
+  // =========================================================================
+  // SECTION 1: Assessment Scope & Limitations
+  // =========================================================================
+  addText("1. Assessment Scope & Limitations", 14, "bold");
+  addSpacer(4);
+
+  addText("1.1 What This Assessment Covers", 11, "bold");
+  for (const item of report.assessment_scope.what_this_covers) {
+    checkPageBreak(12);
+    addText(`• ${item}`, 9, "normal", [60, 60, 60]);
+  }
+  addSpacer(4);
+
+  checkPageBreak(40);
+  addText("1.2 What This Assessment Does Not Cover", 11, "bold");
+  for (const item of report.assessment_scope.what_this_does_not_cover) {
+    checkPageBreak(12);
+    addText(`• ${item}`, 9, "normal", [60, 60, 60]);
+  }
+  addSpacer(4);
+
+  checkPageBreak(40);
+  addText("1.3 When to Re-Run This Assessment", 11, "bold");
+  for (const item of report.assessment_scope.when_to_rerun) {
+    checkPageBreak(12);
+    addText(`• ${item}`, 9, "normal", [60, 60, 60]);
+  }
+  addSpacer(6);
+
+  // =========================================================================
+  // SECTION 2: How Compliance Teams Use This Report
+  // =========================================================================
+  checkPageBreak(50);
+  addText("2. How Compliance Teams Typically Use This Report", 14, "bold");
+  for (const item of report.assessment_scope.how_teams_use_this) {
+    checkPageBreak(12);
+    addText(`• ${item}`, 9, "normal", [60, 60, 60]);
+  }
+  addSpacer(6);
+
+  // =========================================================================
+  // SECTION 3: Executive Summary (with Risk Bar Visual)
+  // =========================================================================
+  checkPageBreak(70);
+  addText("3. Executive Summary", 14, "bold");
+  addSpacer(2);
   addText(`Use Case: ${report.executive_summary.use_case_name}`, 10);
-  addText(`Risk Classification: ${report.executive_summary.risk_classification}`, 10, "bold");
-  addText(`Status: ${report.executive_summary.status}`, 10);
-  addText(`Key Findings: ${report.executive_summary.key_findings_count}`, 10);
+  addSpacer(4);
+
+  // Risk Classification with Visual Bar
+  addText("Risk Classification:", 10, "bold");
+  addSpacer(2);
+  drawRiskSummaryBar(report.executive_summary.risk_classification);
+  addSpacer(2);
+
+  // Status badge
+  const statusColor: [number, number, number] =
+    report.executive_summary.status === "Non-Compliant" ? [139, 0, 0] :
+    report.executive_summary.status === "Needs Manual Review" ? [180, 140, 60] : [60, 120, 60];
+  addText(`Status: ${report.executive_summary.status}`, 10, "bold", statusColor);
+  addSpacer(4);
+
+  // Findings Breakdown Visual
+  addText("Findings Summary:", 10, "bold");
+  addSpacer(2);
+  drawFindingsBreakdown(report.triggered_safeguards);
+
   addText(`Vendors Analyzed: ${report.executive_summary.vendor_count}`, 10);
   addSpacer(6);
 
+  // =========================================================================
+  // SECTION 4: AI Use Case Overview
+  // =========================================================================
   checkPageBreak(40);
-  addText("2. AI Use Case Overview", 14, "bold");
+  addText("4. AI Use Case Overview", 14, "bold");
   addText(`Organization Type: ${report.use_case_overview.organization_type}`, 10);
   addText(`AI Function: ${report.use_case_overview.ai_function}`, 10);
   addText(`PHI Involved: ${formatBoolean(report.use_case_overview.phi_involved)}`, 10);
@@ -410,17 +663,23 @@ export async function exportHIPAAReportAsPDF(report: HIPAAComplianceReport, useC
   addText(`Output: ${report.use_case_overview.output_destination}`, 10);
   addSpacer(6);
 
+  // =========================================================================
+  // SECTION 5: PHI Exposure Mapping
+  // =========================================================================
   checkPageBreak(40);
-  addText("3. PHI Exposure Mapping", 14, "bold");
+  addText("5. PHI Exposure Mapping", 14, "bold");
   addText(`Logging Behavior: ${report.phi_exposure_mapping.logging_behavior}`, 10);
   addText(`Retention Defined: ${formatBoolean(report.phi_exposure_mapping.retention_period_defined)}`, 10);
   addText(`Access Controls Documented: ${formatBoolean(report.phi_exposure_mapping.access_controls_documented)}`, 10);
   addText(`Exposure Risk Level: ${report.phi_exposure_mapping.exposure_risk_level.toUpperCase()}`, 10, "bold");
   addSpacer(6);
 
+  // =========================================================================
+  // SECTION 6: Vendor & BAA Analysis
+  // =========================================================================
   if (report.vendor_analysis.vendors.length > 0) {
     checkPageBreak(60);
-    addText("4. Vendor & BAA Analysis", 14, "bold");
+    addText("6. Vendor & BAA Analysis", 14, "bold");
     addText(`Overall Vendor Risk: ${report.vendor_analysis.overall_vendor_risk.toUpperCase()}`, 10, "bold");
     addSpacer(3);
     
@@ -435,8 +694,11 @@ export async function exportHIPAAReportAsPDF(report: HIPAAComplianceReport, useC
     addSpacer(6);
   }
 
+  // =========================================================================
+  // SECTION 7: Triggered HIPAA Safeguards
+  // =========================================================================
   checkPageBreak(50);
-  addText("5. Triggered HIPAA Safeguards", 14, "bold");
+  addText("7. Triggered HIPAA Safeguards", 14, "bold");
   if (report.triggered_safeguards.length === 0) {
     addText("No safeguard concerns identified.", 10, "normal", [60, 60, 60]);
   } else {
@@ -452,8 +714,11 @@ export async function exportHIPAAReportAsPDF(report: HIPAAComplianceReport, useC
   }
   addSpacer(6);
 
+  // =========================================================================
+  // SECTION 8: Risk Classification
+  // =========================================================================
   checkPageBreak(40);
-  addText("6. Risk Classification", 14, "bold");
+  addText("8. Risk Classification", 14, "bold");
   addText(`Overall Risk: ${report.risk_classification.overall_risk}`, 11, "bold");
   addText(`Confidence Score: ${(report.risk_classification.confidence_score * 100).toFixed(0)}%`, 10);
   if (report.risk_classification.determining_factors.length > 0) {
@@ -465,9 +730,12 @@ export async function exportHIPAAReportAsPDF(report: HIPAAComplianceReport, useC
   }
   addSpacer(6);
 
+  // =========================================================================
+  // SECTION 9: Remediation Checklist
+  // =========================================================================
   if (report.remediation_checklist.length > 0) {
     checkPageBreak(50);
-    addText("7. Remediation Checklist", 14, "bold");
+    addText("9. Remediation Checklist", 14, "bold");
     for (const item of report.remediation_checklist) {
       checkPageBreak(15);
       const priorityColor: [number, number, number] = 
@@ -478,8 +746,11 @@ export async function exportHIPAAReportAsPDF(report: HIPAAComplianceReport, useC
     addSpacer(6);
   }
 
+  // =========================================================================
+  // SECTION 10: Legal References
+  // =========================================================================
   checkPageBreak(50);
-  addText("8. Legal References", 14, "bold");
+  addText("10. Legal References", 14, "bold");
   for (const ref of report.legal_references.slice(0, 10)) {
     checkPageBreak(15);
     addText(`${ref.citation}`, 9, "bold");
@@ -490,17 +761,28 @@ export async function exportHIPAAReportAsPDF(report: HIPAAComplianceReport, useC
   }
   addSpacer(8);
 
-  checkPageBreak(60);
-  addText("9. Disclaimers", 14, "bold");
+  // =========================================================================
+  // SECTION 11: Disclaimers (Enhanced, prominent block)
+  // =========================================================================
+  checkPageBreak(80);
+  addText("11. Important Disclaimers", 14, "bold");
+  addSpacer(2);
+  addText("PLEASE READ CAREFULLY:", 10, "bold", [139, 0, 0]);
+  addSpacer(2);
   for (const disclaimer of report.disclaimers) {
     checkPageBreak(12);
-    addText(`- ${disclaimer}`, 9, "normal", [80, 80, 80]);
+    addText(`• ${disclaimer}`, 9, "normal", [60, 60, 60]);
   }
-  addSpacer(6);
+  addSpacer(8);
 
-  addText(`Report ID: ${report.report_id}`, 8, "normal", [120, 120, 120]);
-  addText(`Generated: ${new Date(report.generated_at).toLocaleString()}`, 8, "normal", [120, 120, 120]);
+  // =========================================================================
+  // FOOTER: Report Metadata
+  // =========================================================================
+  checkPageBreak(30);
+  addText("─".repeat(60), 8, "normal", [180, 180, 180]);
+  addSpacer(2);
   addText(`Tool Version: ${report.tool_version}`, 8, "normal", [120, 120, 120]);
+  addText("This report was generated by a deterministic, rules-based assessment system.", 8, "normal", [120, 120, 120]);
 
   doc.save(filename);
 }
