@@ -1,6 +1,6 @@
 [build]
 builder = "nixpacks"
-buildCommand = "cd launch-ui && npm install && npm run build"
+buildCommand = "cd launch-ui && npm install --legacy-peer-deps && npm run build"
 
 [deploy]
 startCommand = "cd launch-ui && npm run start"
