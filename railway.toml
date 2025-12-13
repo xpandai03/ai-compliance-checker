@@ -1,0 +1,10 @@
+[build]
+builder = "nixpacks"
+buildCommand = "cd launch-ui && npm install && npm run build"
+
+[deploy]
+startCommand = "cd launch-ui && npm run start"
+healthcheckPath = "/"
+healthcheckTimeout = 300
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
