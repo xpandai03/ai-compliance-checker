@@ -292,22 +292,22 @@ export default function Home() {
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
         {/* Hero Section */}
-        <section className="flex min-h-screen w-screen shrink-0 flex-col justify-end px-6 pb-16 pt-16 md:px-12 md:pb-24">
+        <section className="flex min-h-screen w-screen shrink-0 flex-col justify-center px-6 pb-24 pt-8 md:justify-end md:px-12 md:pb-24 md:pt-16">
           <div className="max-w-3xl">
-            <div className="mb-4 inline-block animate-in fade-in slide-in-from-bottom-4 rounded-full border border-foreground/20 bg-foreground/15 px-4 py-1.5 backdrop-blur-md duration-700">
+            <div className="mb-2 inline-block animate-in fade-in slide-in-from-bottom-4 rounded-full border border-foreground/20 bg-foreground/15 px-4 py-1.5 backdrop-blur-md duration-700 md:mb-4">
               <p className="font-mono text-xs text-foreground/90">Check AI Use Case </p>
             </div>
-            <h1 className="mb-6 animate-in fade-in slide-in-from-bottom-8 font-sans text-6xl font-light leading-[1.1] tracking-tight text-foreground duration-1000 md:text-7xl lg:text-8xl">
+            <h1 className="mb-3 animate-in fade-in slide-in-from-bottom-8 font-sans text-5xl font-light leading-[1.1] tracking-tight text-foreground duration-1000 md:mb-6 md:text-7xl lg:text-8xl">
               <span className="text-balance">HIPAA AI Risk Assessment</span>
             </h1>
-            <p className="mb-8 max-w-xl animate-in fade-in slide-in-from-bottom-4 text-lg leading-relaxed text-foreground/90 duration-1000 delay-200 md:text-xl">
+            <p className="mb-4 max-w-xl animate-in fade-in slide-in-from-bottom-4 text-base leading-relaxed text-foreground/90 duration-1000 delay-200 md:mb-8 md:text-xl">
               <span className="text-pretty">
                 Evaluate AI use cases that may process PHI using a deterministic, rules-based HIPAA risk assessment.
                 Free to run. No signup required. Generate an auditor-ready report grounded in HIPAA Security Rule (45
                 CFR §164) and NIST-aligned guidance.
               </span>
             </p>
-            <div className="flex animate-in fade-in slide-in-from-bottom-4 flex-col gap-4 duration-1000 delay-300 sm:flex-row sm:items-center">
+            <div className="flex animate-in fade-in slide-in-from-bottom-4 flex-col gap-3 duration-1000 delay-300 sm:flex-row sm:items-center md:gap-4">
               <MagneticButton
                 size="lg"
                 variant="primary"
@@ -321,9 +321,9 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-in fade-in duration-1000 delay-500">
-            <div className="flex flex-col items-center gap-2">
-              <p className="font-mono text-xs text-foreground/50">
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 animate-in fade-in duration-1000 delay-500 md:bottom-8">
+            <div className="flex flex-col items-center gap-1 md:gap-2">
+              <p className="px-4 text-center font-mono text-xs text-foreground/50">
                 HIPAA AI risk assessment beta — deterministic, rules-based, not legal advice.
               </p>
               <div className="flex items-center gap-2">
