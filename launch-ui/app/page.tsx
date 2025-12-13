@@ -26,6 +26,8 @@ interface AssessmentDraft {
   vendors: VendorDraft[]
   loggingBehavior: string
   environment: string
+  retentionPeriodDefined: string
+  accessControlsDocumented: string
 }
 
 const initialDraft: AssessmentDraft = {
@@ -37,6 +39,8 @@ const initialDraft: AssessmentDraft = {
   vendors: [createEmptyVendor()],
   loggingBehavior: "",
   environment: "",
+  retentionPeriodDefined: "",
+  accessControlsDocumented: "",
 }
 
 export default function Home() {
@@ -367,10 +371,14 @@ export default function Home() {
           vendors={draft.vendors}
           loggingBehavior={draft.loggingBehavior}
           environment={draft.environment}
+          retentionPeriodDefined={draft.retentionPeriodDefined}
+          accessControlsDocumented={draft.accessControlsDocumented}
           onPhiTypesChange={updatePhiTypes}
           onVendorsChange={updateVendors}
           onLoggingBehaviorChange={(v) => updateDraft("loggingBehavior", v)}
           onEnvironmentChange={(v) => updateDraft("environment", v)}
+          onRetentionPeriodDefinedChange={(v) => updateDraft("retentionPeriodDefined", v)}
+          onAccessControlsDocumentedChange={(v) => updateDraft("accessControlsDocumented", v)}
           isReviewReady={isReviewReady}
           onReviewClick={handleReviewClick}
         />

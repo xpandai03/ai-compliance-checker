@@ -18,6 +18,8 @@ export interface AssessmentDraft {
   vendors: VendorDraft[];
   loggingBehavior: string;
   environment: string;
+  retentionPeriodDefined: string;
+  accessControlsDocumented: string;
 }
 
 /**
@@ -68,6 +70,22 @@ export function mapDraftToHIPAAProfile(draft: AssessmentDraft): HIPAAUseCaseProf
   };
   const environment = envMap[draft.environment] || "prod";
 
+  // Map retention period defined (yes/no/unknown)
+  const retentionMap: Record<string, boolean | "unknown"> = {
+    yes: true,
+    no: false,
+    unknown: "unknown",
+  };
+  const retention_period_defined = retentionMap[draft.retentionPeriodDefined] ?? "unknown";
+
+  // Map access controls documented (yes/no/unknown)
+  const accessControlsMap: Record<string, boolean | "unknown"> = {
+    yes: true,
+    no: false,
+    unknown: "unknown",
+  };
+  const access_controls_documented = accessControlsMap[draft.accessControlsDocumented] ?? "unknown";
+
   // Filter out empty PHI types
   const phi_types = draft.phiTypes.filter((t) => t.trim() !== "");
 
@@ -89,9 +107,8 @@ export function mapDraftToHIPAAProfile(draft: AssessmentDraft): HIPAAUseCaseProf
     output_destination: "AI System",
     environment,
     logging_behavior,
-    // These are not collected in the simplified UI - default to unknown
-    retention_period_defined: "unknown",
-    access_controls_documented: "unknown",
+    retention_period_defined,
+    access_controls_documented,
     vendors_used,
   };
 }

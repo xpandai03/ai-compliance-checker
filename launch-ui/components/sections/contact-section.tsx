@@ -24,10 +24,14 @@ interface ContactSectionProps {
   vendors: VendorDraft[]
   loggingBehavior: string
   environment: string
+  retentionPeriodDefined: string
+  accessControlsDocumented: string
   onPhiTypesChange: (values: string[]) => void
   onVendorsChange: (values: VendorDraft[]) => void
   onLoggingBehaviorChange: (value: string) => void
   onEnvironmentChange: (value: string) => void
+  onRetentionPeriodDefinedChange: (value: string) => void
+  onAccessControlsDocumentedChange: (value: string) => void
   isReviewReady: boolean
   onReviewClick: () => void
 }
@@ -37,10 +41,14 @@ export function ContactSection({
   vendors,
   loggingBehavior,
   environment,
+  retentionPeriodDefined,
+  accessControlsDocumented,
   onPhiTypesChange,
   onVendorsChange,
   onLoggingBehaviorChange,
   onEnvironmentChange,
+  onRetentionPeriodDefinedChange,
+  onAccessControlsDocumentedChange,
   isReviewReady,
   onReviewClick,
 }: ContactSectionProps) {
@@ -83,6 +91,21 @@ export function ContactSection({
     { value: "", label: "Select vendor logging..." },
     { value: "yes", label: "Yes - Logging enabled" },
     { value: "no", label: "No - Logging disabled" },
+    { value: "unknown", label: "Unknown" },
+  ]
+
+  // Global safeguard options - required for LOW path reachability
+  const retentionOptions = [
+    { value: "", label: "Select retention status..." },
+    { value: "yes", label: "Yes - Retention period defined" },
+    { value: "no", label: "No - Not defined" },
+    { value: "unknown", label: "Unknown" },
+  ]
+
+  const accessControlsOptions = [
+    { value: "", label: "Select access controls status..." },
+    { value: "yes", label: "Yes - Access controls documented" },
+    { value: "no", label: "No - Not documented" },
     { value: "unknown", label: "Unknown" },
   ]
 
@@ -296,6 +319,54 @@ export function ContactSection({
                   className={`w-full border-b border-foreground/30 bg-transparent py-1.5 text-sm text-foreground focus:border-foreground/50 focus:outline-none md:py-2 md:text-base ${isReviewReady ? "opacity-60 cursor-not-allowed" : ""}`}
                 >
                   {environmentOptions.map((option) => (
+                    <option key={option.value} value={option.value} className="bg-background text-foreground">
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Retention Period Defined Dropdown */}
+              <div
+                className={`transition-all duration-700 ${
+                  isVisible ? "translate-x-0 opacity-100" : "translate-x-16 opacity-0"
+                }`}
+                style={{ transitionDelay: "450ms" }}
+              >
+                <label className="mb-1 block font-mono text-xs text-foreground/60 md:mb-2">
+                  Data Retention Period Defined?
+                </label>
+                <select
+                  value={retentionPeriodDefined}
+                  onChange={(e) => onRetentionPeriodDefinedChange(e.target.value)}
+                  disabled={isReviewReady}
+                  className={`w-full border-b border-foreground/30 bg-transparent py-1.5 text-sm text-foreground focus:border-foreground/50 focus:outline-none md:py-2 md:text-base ${isReviewReady ? "opacity-60 cursor-not-allowed" : ""}`}
+                >
+                  {retentionOptions.map((option) => (
+                    <option key={option.value} value={option.value} className="bg-background text-foreground">
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Access Controls Documented Dropdown */}
+              <div
+                className={`transition-all duration-700 ${
+                  isVisible ? "translate-x-0 opacity-100" : "translate-x-16 opacity-0"
+                }`}
+                style={{ transitionDelay: "550ms" }}
+              >
+                <label className="mb-1 block font-mono text-xs text-foreground/60 md:mb-2">
+                  Access Controls Documented?
+                </label>
+                <select
+                  value={accessControlsDocumented}
+                  onChange={(e) => onAccessControlsDocumentedChange(e.target.value)}
+                  disabled={isReviewReady}
+                  className={`w-full border-b border-foreground/30 bg-transparent py-1.5 text-sm text-foreground focus:border-foreground/50 focus:outline-none md:py-2 md:text-base ${isReviewReady ? "opacity-60 cursor-not-allowed" : ""}`}
+                >
+                  {accessControlsOptions.map((option) => (
                     <option key={option.value} value={option.value} className="bg-background text-foreground">
                       {option.label}
                     </option>
