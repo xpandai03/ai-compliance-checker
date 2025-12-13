@@ -1,5 +1,13 @@
 import type { HIPAAUseCaseProfile, VendorPHIMetadata } from "./hipaaTypes";
 
+// Vendor intake shape - matches kernel VendorPHIMetadata contract
+export interface VendorDraft {
+  vendor_name: string;
+  baa_available: "yes" | "no" | "unknown" | "";
+  storage_behavior: "none" | "transient" | "stored" | "unknown" | "";
+  logging_enabled: "yes" | "no" | "unknown" | "";
+}
+
 // UI Draft shape from page.tsx
 export interface AssessmentDraft {
   useCaseName: string;
@@ -7,7 +15,7 @@ export interface AssessmentDraft {
   aiFunction: string;
   phiInvolved: string;
   phiTypes: string[];
-  vendors: string[];
+  vendors: VendorDraft[];
   loggingBehavior: string;
   environment: string;
 }
@@ -63,12 +71,12 @@ export function mapDraftToHIPAAProfile(draft: AssessmentDraft): HIPAAUseCaseProf
   // Filter out empty PHI types
   const phi_types = draft.phiTypes.filter((t) => t.trim() !== "");
 
-  // Map vendors to vendors_used format
+  // Map vendors to vendors_used format (role is informational only, not used by kernel)
   const vendors_used = draft.vendors
-    .filter((v) => v.trim() !== "")
-    .map((vendor_name) => ({
-      vendor_name,
-      role: "AI Provider", // Default role since UI doesn't collect this
+    .filter((v) => v.vendor_name.trim() !== "")
+    .map((vendor) => ({
+      vendor_name: vendor.vendor_name,
+      role: "AI Provider",
     }));
 
   return {
@@ -89,19 +97,42 @@ export function mapDraftToHIPAAProfile(draft: AssessmentDraft): HIPAAUseCaseProf
 }
 
 /**
- * Creates VendorPHIMetadata array from the profile.
- * Since the UI doesn't collect detailed vendor info, we set most fields to "unknown".
+ * Helper to map yes/no/unknown string to boolean | "unknown"
+ */
+function mapYesNoUnknown(value: string): boolean | "unknown" {
+  if (value === "yes") return true;
+  if (value === "no") return false;
+  return "unknown";
+}
+
+/**
+ * Helper to map storage behavior string to kernel enum
+ */
+function mapStorageBehavior(value: string): "none" | "transient" | "stored" | "unknown" {
+  if (value === "none" || value === "transient" || value === "stored") {
+    return value;
+  }
+  return "unknown";
+}
+
+/**
+ * Creates VendorPHIMetadata array directly from draft vendors.
+ * Maps UI values 1-to-1 to kernel contract - no inference, no defaults.
  */
 export function createVendorMetadata(
-  profile: HIPAAUseCaseProfile
+  _profile: HIPAAUseCaseProfile,
+  draftVendors: VendorDraft[]
 ): VendorPHIMetadata[] {
-  return profile.vendors_used.map((vendor) => ({
-    vendor_name: vendor.vendor_name,
-    baa_available: "unknown",
-    data_storage: "unknown",
-    logging_enabled: "unknown",
-    access_controls_documented: "unknown",
-    source: "user_input",
-    confidence: "low",
-  }));
+  return draftVendors
+    .filter((v) => v.vendor_name.trim() !== "")
+    .map((vendor) => ({
+      vendor_name: vendor.vendor_name,
+      baa_available: mapYesNoUnknown(vendor.baa_available),
+      data_storage: mapStorageBehavior(vendor.storage_behavior),
+      logging_enabled: mapYesNoUnknown(vendor.logging_enabled),
+      // Access controls are global, not vendor-specific - default to "unknown"
+      access_controls_documented: "unknown",
+      source: "user_input",
+      confidence: vendor.baa_available && vendor.storage_behavior && vendor.logging_enabled ? "high" : "medium",
+    }));
 }

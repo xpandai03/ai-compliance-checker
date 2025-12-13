@@ -4,13 +4,28 @@ import { useReveal } from "@/hooks/use-reveal"
 import { MagneticButton } from "@/components/magnetic-button"
 import { useRef } from "react"
 
+// Vendor intake shape - matches kernel VendorPHIMetadata contract
+export interface VendorDraft {
+  vendor_name: string
+  baa_available: "yes" | "no" | "unknown" | ""
+  storage_behavior: "none" | "transient" | "stored" | "unknown" | ""
+  logging_enabled: "yes" | "no" | "unknown" | ""
+}
+
+export const createEmptyVendor = (): VendorDraft => ({
+  vendor_name: "",
+  baa_available: "",
+  storage_behavior: "",
+  logging_enabled: "",
+})
+
 interface ContactSectionProps {
   phiTypes: string[]
-  vendors: string[]
+  vendors: VendorDraft[]
   loggingBehavior: string
   environment: string
   onPhiTypesChange: (values: string[]) => void
-  onVendorsChange: (values: string[]) => void
+  onVendorsChange: (values: VendorDraft[]) => void
   onLoggingBehaviorChange: (value: string) => void
   onEnvironmentChange: (value: string) => void
   isReviewReady: boolean
@@ -33,18 +48,41 @@ export function ContactSection({
   const phiInputRefs = useRef<(HTMLInputElement | null)[]>([])
   const vendorInputRefs = useRef<(HTMLInputElement | null)[]>([])
 
+  // Global logging behavior options
   const loggingOptions = [
     { value: "", label: "Select logging behavior..." },
-    { value: "logs_phi", label: "Logs PHI" },
+    { value: "logs_phi", label: "Logs PHI (retained)" },
     { value: "does_not_log", label: "Does Not Log PHI" },
     { value: "unknown", label: "Unknown" },
   ]
 
   const environmentOptions = [
     { value: "", label: "Select environment..." },
-    { value: "cloud", label: "Cloud" },
-    { value: "on_prem", label: "On-prem" },
-    { value: "hybrid", label: "Hybrid" },
+    { value: "prod", label: "Production" },
+    { value: "staging", label: "Staging" },
+    { value: "dev", label: "Development" },
+  ]
+
+  // Vendor-specific dropdown options - match kernel enums exactly
+  const baaOptions = [
+    { value: "", label: "Select BAA status..." },
+    { value: "yes", label: "Yes - BAA available" },
+    { value: "no", label: "No - No BAA" },
+    { value: "unknown", label: "Unknown" },
+  ]
+
+  const storageOptions = [
+    { value: "", label: "Select storage behavior..." },
+    { value: "none", label: "None (does not store PHI)" },
+    { value: "transient", label: "Transient (temporary processing only)" },
+    { value: "stored", label: "Stored (retains PHI)" },
+    { value: "unknown", label: "Unknown" },
+  ]
+
+  const vendorLoggingOptions = [
+    { value: "", label: "Select vendor logging..." },
+    { value: "yes", label: "Yes - Logging enabled" },
+    { value: "no", label: "No - Logging disabled" },
     { value: "unknown", label: "Unknown" },
   ]
 
@@ -62,14 +100,14 @@ export function ContactSection({
     }, 0)
   }
 
-  const updateVendor = (index: number, value: string) => {
+  const updateVendorField = (index: number, field: keyof VendorDraft, value: string) => {
     const newVendors = [...vendors]
-    newVendors[index] = value
+    newVendors[index] = { ...newVendors[index], [field]: value }
     onVendorsChange(newVendors)
   }
 
   const addVendor = () => {
-    const newVendors = [...vendors, ""]
+    const newVendors = [...vendors, createEmptyVendor()]
     onVendorsChange(newVendors)
     setTimeout(() => {
       vendorInputRefs.current[newVendors.length - 1]?.focus()
@@ -134,7 +172,7 @@ export function ContactSection({
                 )}
               </div>
 
-              {/* Vendors Inputs */}
+              {/* Vendors Section - Full kernel-aligned intake */}
               <div
                 className={`transition-all duration-700 ${
                   isVisible ? "translate-y-0 opacity-100" : "translate-y-12 opacity-0"
@@ -144,18 +182,61 @@ export function ContactSection({
                 <label className="mb-1 block font-mono text-xs text-foreground/60 md:mb-2">
                   AI Vendors / Third Parties
                 </label>
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {vendors.map((vendor, index) => (
-                    <input
-                      key={index}
-                      ref={(el) => { vendorInputRefs.current[index] = el }}
-                      type="text"
-                      value={vendor}
-                      onChange={(e) => updateVendor(index, e.target.value)}
-                      disabled={isReviewReady}
-                      className={`w-full border-b border-foreground/30 bg-transparent py-1.5 text-sm text-foreground placeholder:text-foreground/40 focus:border-foreground/50 focus:outline-none md:py-2 md:text-base ${isReviewReady ? "opacity-60 cursor-not-allowed" : ""}`}
-                      placeholder={index === 0 ? "e.g., OpenAI, AWS, Google Cloud" : "Add another vendor..."}
-                    />
+                    <div key={index} className="rounded border border-foreground/20 bg-foreground/5 p-3">
+                      {/* Vendor Name */}
+                      <input
+                        ref={(el) => { vendorInputRefs.current[index] = el }}
+                        type="text"
+                        value={vendor.vendor_name}
+                        onChange={(e) => updateVendorField(index, "vendor_name", e.target.value)}
+                        disabled={isReviewReady}
+                        className={`mb-3 w-full border-b border-foreground/30 bg-transparent py-1 text-sm text-foreground placeholder:text-foreground/40 focus:border-foreground/50 focus:outline-none ${isReviewReady ? "opacity-60 cursor-not-allowed" : ""}`}
+                        placeholder={index === 0 ? "Vendor name (e.g., OpenAI)" : "Vendor name"}
+                      />
+                      <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+                        {/* BAA Available */}
+                        <select
+                          value={vendor.baa_available}
+                          onChange={(e) => updateVendorField(index, "baa_available", e.target.value)}
+                          disabled={isReviewReady}
+                          className={`w-full border-b border-foreground/30 bg-transparent py-1 text-xs text-foreground focus:border-foreground/50 focus:outline-none ${isReviewReady ? "opacity-60 cursor-not-allowed" : ""}`}
+                        >
+                          {baaOptions.map((opt) => (
+                            <option key={opt.value} value={opt.value} className="bg-background text-foreground">
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                        {/* Storage Behavior */}
+                        <select
+                          value={vendor.storage_behavior}
+                          onChange={(e) => updateVendorField(index, "storage_behavior", e.target.value)}
+                          disabled={isReviewReady}
+                          className={`w-full border-b border-foreground/30 bg-transparent py-1 text-xs text-foreground focus:border-foreground/50 focus:outline-none ${isReviewReady ? "opacity-60 cursor-not-allowed" : ""}`}
+                        >
+                          {storageOptions.map((opt) => (
+                            <option key={opt.value} value={opt.value} className="bg-background text-foreground">
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                        {/* Logging Enabled */}
+                        <select
+                          value={vendor.logging_enabled}
+                          onChange={(e) => updateVendorField(index, "logging_enabled", e.target.value)}
+                          disabled={isReviewReady}
+                          className={`w-full border-b border-foreground/30 bg-transparent py-1 text-xs text-foreground focus:border-foreground/50 focus:outline-none ${isReviewReady ? "opacity-60 cursor-not-allowed" : ""}`}
+                        >
+                          {vendorLoggingOptions.map((opt) => (
+                            <option key={opt.value} value={opt.value} className="bg-background text-foreground">
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
                   ))}
                 </div>
                 {!isReviewReady && (

@@ -7,7 +7,7 @@ import { WorkSection } from "@/components/sections/work-section"
 import { ServicesSection } from "@/components/sections/services-section"
 import { AiFunctionSection } from "@/components/sections/ai-function-section"
 import { AboutSection } from "@/components/sections/about-section"
-import { ContactSection } from "@/components/sections/contact-section"
+import { ContactSection, type VendorDraft, createEmptyVendor } from "@/components/sections/contact-section"
 import { ReviewSection } from "@/components/sections/review-section"
 import { ResultsSection } from "@/components/sections/results-section"
 import { MagneticButton } from "@/components/magnetic-button"
@@ -23,7 +23,7 @@ interface AssessmentDraft {
   aiFunction: string
   phiInvolved: string
   phiTypes: string[]
-  vendors: string[]
+  vendors: VendorDraft[]
   loggingBehavior: string
   environment: string
 }
@@ -34,7 +34,7 @@ const initialDraft: AssessmentDraft = {
   aiFunction: "",
   phiInvolved: "",
   phiTypes: [""],
-  vendors: [""],
+  vendors: [createEmptyVendor()],
   loggingBehavior: "",
   environment: "",
 }
@@ -58,7 +58,8 @@ export default function Home() {
   // Execute kernel and navigate to review
   const handleReviewClick = () => {
     const profile = mapDraftToHIPAAProfile(draft)
-    const vendors = createVendorMetadata(profile)
+    // Pass draft.vendors directly to createVendorMetadata for 1-to-1 kernel mapping
+    const vendors = createVendorMetadata(profile, draft.vendors)
     const findings = auditHIPAA(profile, vendors)
     setAssessmentProfile(profile)
     setAssessmentVendors(vendors)
@@ -75,7 +76,7 @@ export default function Home() {
     setDraft(prev => ({ ...prev, phiTypes: newPhiTypes }))
   }
 
-  const updateVendors = (newVendors: string[]) => {
+  const updateVendors = (newVendors: VendorDraft[]) => {
     setDraft(prev => ({ ...prev, vendors: newVendors }))
   }
   const touchStartY = useRef(0)

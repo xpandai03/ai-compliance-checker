@@ -2,13 +2,14 @@
 
 import { useReveal } from "@/hooks/use-reveal"
 import { MagneticButton } from "@/components/magnetic-button"
+import type { VendorDraft } from "@/components/sections/contact-section"
 
 interface ReviewSectionProps {
   useCaseName: string
   organizationType: string
   aiFunction: string
   phiInvolved: string
-  vendors: string[]
+  vendors: VendorDraft[]
   loggingBehavior: string
   onViewResults: () => void
 }
@@ -63,7 +64,7 @@ export function ReviewSection({
     return labels[value] || value || "Not specified"
   }
 
-  const vendorCount = vendors.filter((v) => v.trim() !== "").length
+  const vendorCount = vendors.filter((v) => v.vendor_name.trim() !== "").length
 
   const summaryItems = [
     { label: "Use Case Name", value: useCaseName || "Not specified" },
