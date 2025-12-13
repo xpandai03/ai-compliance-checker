@@ -1,0 +1,193 @@
+You are debugging an existing app where HIPAA support was added at the file level but is **not wired into the execution path**.
+
+Your job is to **make HIPAA audits actually run**, not to add new files.
+
+* * * * *
+
+**❗ Problem Statement (Confirmed Bug)**
+---------------------------------------
+
+When running the app UI:
+
+-   Selecting HIPAA still produces:
+
+    -   EU AI Act rules
+
+    -   EU AI Act citations
+
+    -   EU AI Act PDF report
+
+-   This proves the HIPAA audit pipeline is **not connected**.
+
+HIPAA currently exists only as unused code.
+
+* * * * *
+
+**🎯 Objective**
+----------------
+
+Make HIPAA the **active, real audit path** when selected.
+
+After your fix:
+
+-   HIPAA intake → HIPAA rules → HIPAA risk → HIPAA report
+
+-   EU AI Act remains unchanged and still works
+
+* * * * *
+
+**🧩 Step 1 --- Identify the SINGLE audit entrypoint**
+----------------------------------------------------
+
+Locate:
+
+-   The function that is currently called when the user clicks "Run Audit" or equivalent
+
+-   The function that ultimately returns:
+
+    -   risk classification
+
+    -   triggered rules
+
+    -   report data
+
+**Report the file + function name before changing anything.**
+
+* * * * *
+
+**🧩 Step 2 --- Add an explicit regulation switch (MANDATORY)**
+-------------------------------------------------------------
+
+There must be a **single explicit variable**, e.g.:
+
+```
+type Regulation = "EU_AI_ACT" | "HIPAA"
+```
+
+This value must:
+
+-   Be set by the UI (tab / toggle)
+
+-   Be passed into the audit execution function
+
+No implicit inference.
+
+No defaults.
+
+* * * * *
+
+**🧩 Step 3 --- Hard switch audit execution (NO SHARED PATH)**
+------------------------------------------------------------
+
+Refactor so execution looks like this:
+
+```
+if (regulation === "EU_AI_ACT") {
+  result = runEUAIActAudit(modelProfile, providerMetadata)
+}
+
+if (regulation === "HIPAA") {
+  result = runHIPAAAudit(hipaaUseCaseProfile, vendorPHIMetadata)
+}
+```
+
+Rules must **not** coexist in the same run.
+
+If HIPAA is selected:
+
+-   EU rules must not load
+
+-   EU citations must not appear
+
+-   EU report generator must not be callable
+
+* * * * *
+
+**🧩 Step 4 --- Fix the report generator binding (CRITICAL)**
+-----------------------------------------------------------
+
+Right now, the PDF export is still using the EU generator.
+
+You must:
+
+-   Identify where PDF generation is triggered
+
+-   Bind it explicitly:
+
+```
+if (regulation === "HIPAA") {
+  generateHIPAAReport(auditResult)
+}
+```
+
+Add a **hard assertion**:
+
+-   If HIPAA is selected and EU report is generated → throw error
+
+* * * * *
+
+**🧩 Step 5 --- Prove HIPAA is real (MANDATORY VERIFICATION)**
+------------------------------------------------------------
+
+After wiring is complete, do ALL of the following:
+
+1.  Run a HIPAA audit with:
+
+    -   PHI involved = true
+
+    -   Vendor with baa_available = false
+
+2.  Confirm:
+
+    -   Triggered rule mentions BAA
+
+    -   Citations reference **45 CFR**
+
+    -   Report title says **HIPAA AI Risk Assessment**
+
+    -   EU AI Act articles do NOT appear
+
+3.  Paste the resulting console output or JSON result.
+
+* * * * *
+
+**🚫 Explicitly Forbidden**
+---------------------------
+
+-   ❌ Do NOT add new rules
+
+-   ❌ Do NOT redesign UI
+
+-   ❌ Do NOT add RAG
+
+-   ❌ Do NOT create new "v2" files
+
+-   ❌ Do NOT leave HIPAA half-wired
+
+* * * * *
+
+**✅ Definition of Done**
+------------------------
+
+This task is complete ONLY if:
+
+-   Selecting HIPAA cannot produce EU artifacts
+
+-   PDF export is HIPAA-specific
+
+-   EU AI Act still works independently
+
+-   The system fails loudly if paths are mixed
+
+* * * * *
+
+**🧠 Reminder**
+---------------
+
+This is a **plumbing fix**, not a feature build.
+
+HIPAA already exists --- you are making it **real**.
+
+Proceed carefully and show diffs.
+
+* * * * *

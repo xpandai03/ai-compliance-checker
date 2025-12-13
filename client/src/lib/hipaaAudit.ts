@@ -5,10 +5,16 @@ export function auditHIPAA(
   profile: HIPAAUseCaseProfile,
   vendors: VendorPHIMetadata[]
 ): HIPAAFindings {
+  console.log("[HIPAA AUDIT] Starting auditHIPAA");
+  console.log("[HIPAA AUDIT] Profile PHI involved:", profile.phi_involved);
+  console.log("[HIPAA AUDIT] Vendors count:", vendors.length);
+  
   const triggeredRules: HIPAATriggeredRule[] = [];
 
   for (const rule of HIPAA_RULES) {
-    if (evaluateHIPAARule(rule, profile, vendors)) {
+    const triggered = evaluateHIPAARule(rule, profile, vendors);
+    console.log(`[HIPAA AUDIT] Rule ${rule.id}: ${triggered ? "TRIGGERED" : "not triggered"}`);
+    if (triggered) {
       triggeredRules.push(toTriggeredRule(rule));
     }
   }

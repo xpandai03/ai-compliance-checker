@@ -53,10 +53,15 @@ export default function HomePage() {
   };
 
   const handleHIPAAScan = (profile: HIPAAUseCaseProfile, vendors: VendorPHIMetadata[]) => {
+    console.log("[HIPAA] handleHIPAAScan called with profile:", profile);
+    console.log("[HIPAA] vendors:", vendors);
     setHipaaAuditPhase("profile");
     setHipaaProfile(profile);
     setHipaaVendors(vendors);
     const computedFindings = auditHIPAA(profile, vendors);
+    console.log("[HIPAA] auditHIPAA returned:", computedFindings);
+    console.log("[HIPAA] triggeredRules:", computedFindings.triggeredRules);
+    console.log("[HIPAA] relevantCitations:", computedFindings.relevantCitations);
     setHipaaFindings(computedFindings);
   };
 
