@@ -80,8 +80,14 @@ export default function HomePage() {
   };
 
   const handleRegulationChange = (value: string) => {
+    console.log("[REGULATION] Tab changed to:", value);
     setRegulation(value as RegulationType);
   };
+
+  // Debug: Log render state
+  console.log("[RENDER] Current regulation:", regulation);
+  console.log("[RENDER] hasEUFindings:", modelProfile !== null && findings !== null);
+  console.log("[RENDER] hasHIPAAFindings:", hipaaProfile !== null && hipaaFindings !== null);
 
   useEffect(() => {
     if (!findings) return;
