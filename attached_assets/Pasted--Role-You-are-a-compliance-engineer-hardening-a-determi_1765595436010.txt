@@ -1,0 +1,368 @@
+
+**Role:**
+
+You are a compliance engineer hardening a **deterministic HIPAA AI Risk Assessment kernel**.
+
+Your task is to **rewrite and enforce the HIPAA v0 ruleset** so outputs are conservative, internally consistent, and defensible.
+
+This is **rules logic only**.
+
+Do NOT redesign UI.
+
+Do NOT add new features.
+
+Do NOT add RAG.
+
+* * * * *
+
+**🎯 Objective**
+----------------
+
+Harden the HIPAA rules so that:
+
+-   "Compliant" is **rare and earned**
+
+-   "NEEDS REVIEW" is the default for uncertainty
+
+-   Contradictory inputs are flagged
+
+-   Zero-vendor and unknown cases are never marked compliant
+
+-   Output aligns with HIPAA Security Rule risk-analysis expectations
+
+* * * * *
+
+**🚫 Absolute Constraints**
+---------------------------
+
+-   Rules must remain **deterministic**
+
+-   No probabilistic reasoning
+
+-   No scoring changes
+
+-   No legal interpretation beyond citations
+
+-   Existing aggregation logic (HIGH > NEEDS REVIEW > LOW) stays
+
+* * * * *
+
+**🧩 STEP 1 --- REMOVE any default-compliant behavior**
+-----------------------------------------------------
+
+Search the HIPAA audit logic and rules for:
+
+-   "default compliant"
+
+-   fallback LOW risk
+
+-   assumptions like "no vendors = safe"
+
+❌ These must be removed.
+
+LOW risk must only be returned by **explicit rules**.
+
+* * * * *
+
+**🧩 STEP 2 --- IMPLEMENT HIPAA v0 RULESET (EXACTLY AS SPECIFIED)**
+-----------------------------------------------------------------
+
+Replace or rewrite the HIPAA rules so they match the following **line-by-line** logic.
+
+### **RULE_HIPAA_001 --- Unknown PHI Involvement**
+
+**IF**
+
+-   phi_involved === "unknown"
+
+**THEN**
+
+-   Risk = **NEEDS REVIEW**
+
+**Citation**
+
+-   45 CFR §164.308(a)(1)(ii)(A)
+
+* * * * *
+
+### **RULE_HIPAA_002 --- PHI + No Vendors Declared**
+
+**IF**
+
+-   phi_involved === true
+
+-   vendors.length === 0
+
+**THEN**
+
+-   Risk = **NEEDS REVIEW**
+
+**Citation**
+
+-   45 CFR §164.308(b)(1)
+
+* * * * *
+
+### **RULE_HIPAA_003 --- Vendor Without BAA (Critical)**
+
+**IF**
+
+-   phi_involved === true
+
+-   any vendor.baa_available !== true
+
+**THEN**
+
+-   Risk = **HIGH**
+
+**Citation**
+
+-   45 CFR §164.308(b)(1)
+
+* * * * *
+
+### **RULE_HIPAA_004 --- Retained PHI Logging**
+
+**IF**
+
+-   phi_involved === true
+
+-   logging_behavior === "retained"
+
+**THEN**
+
+-   Risk = **HIGH**
+
+**Citation**
+
+-   45 CFR §164.312(b)
+
+* * * * *
+
+### **RULE_HIPAA_005 --- Unknown Logging in Production**
+
+**IF**
+
+-   environment === "prod"
+
+-   logging_behavior === "unknown"
+
+**THEN**
+
+-   Risk = **NEEDS REVIEW**
+
+**Citation**
+
+-   45 CFR §164.312(b)
+
+* * * * *
+
+### **RULE_HIPAA_006 --- Undefined Retention**
+
+**IF**
+
+-   phi_involved === true
+
+-   retention_period_defined !== true
+
+**THEN**
+
+-   Risk = **NEEDS REVIEW**
+
+**Citation**
+
+-   45 CFR §164.312(c)(1)
+
+* * * * *
+
+### **RULE_HIPAA_007 --- Undocumented Access Controls**
+
+**IF**
+
+-   phi_involved === true
+
+-   access_controls_documented !== true
+
+**THEN**
+
+-   Risk = **NEEDS REVIEW**
+
+**Citation**
+
+-   45 CFR §164.312(a)(1)
+
+* * * * *
+
+### **RULE_HIPAA_008 --- PHI Flag Inconsistency**
+
+**IF**
+
+-   phi_involved === false
+
+-   phi_types.length > 0
+
+**THEN**
+
+-   Risk = **NEEDS REVIEW**
+
+**Citation**
+
+-   45 CFR §164.308(a)(1)(ii)(A)
+
+* * * * *
+
+### **RULE_HIPAA_009 --- Explicit Non-PHI Use Case (LOW)**
+
+**IF**
+
+-   phi_involved === false
+
+-   vendors.length === 0
+
+-   logging_behavior !== "retained"
+
+**THEN**
+
+-   Risk = **LOW**
+
+**Citation**
+
+-   45 CFR §164.502(a)
+
+* * * * *
+
+### **RULE_HIPAA_010 --- Fully Characterized Low-Risk PHI Use**
+
+**IF**
+
+-   phi_involved === true
+
+-   all vendors have baa_available === true
+
+-   logging_behavior === "none" || "transient"
+
+-   retention_period_defined === true
+
+-   access_controls_documented === true
+
+**THEN**
+
+-   Risk = **LOW**
+
+**Citation**
+
+-   45 CFR §164.308 / §164.312
+
+* * * * *
+
+**🧩 STEP 3 --- ENFORCE "COMPLIANT" GATING**
+------------------------------------------
+
+Modify the final status logic so:
+
+-   **Compliant** is allowed ONLY if:
+
+    -   Final risk === LOW
+
+    -   No NEEDS REVIEW rules triggered
+
+    -   No input inconsistencies exist
+
+If confidence < 70% OR any NEEDS REVIEW →
+
+Status must NOT be "Compliant".
+
+* * * * *
+
+**🧩 STEP 4 --- ADD ASSERTIONS (TEMPORARY, REQUIRED)**
+----------------------------------------------------
+
+Add runtime guards:
+
+```
+if (finalRisk === "LOW" && triggeredNeedsReviewRules.length > 0) {
+  throw new Error("Invalid state: LOW risk with unresolved review items")
+}
+```
+
+```
+if (vendors.length === 0 && phi_involved === true && finalRisk === "LOW") {
+  throw new Error("Invalid state: PHI with no vendors marked LOW")
+}
+```
+
+These can be removed later --- they are for correctness now.
+
+* * * * *
+
+**🧩 STEP 5 --- VERIFY WITH TWO TEST CASES**
+------------------------------------------
+
+### **Test A (should be NEEDS REVIEW)**
+
+-   PHI = true
+
+-   Vendors = none
+
+-   Logging = unknown
+
+-   Env = prod
+
+### **Test B (should be LOW)**
+
+-   PHI = true
+
+-   Vendor with BAA = true
+
+-   Logging = transient
+
+-   Retention defined = true
+
+-   Access controls documented = true
+
+Log:
+
+-   Triggered rule IDs
+
+-   Final risk
+
+-   Status
+
+* * * * *
+
+**🚫 Forbidden**
+----------------
+
+-   ❌ Do NOT add new rules beyond these 10
+
+-   ❌ Do NOT change UI labels
+
+-   ❌ Do NOT soften logic
+
+-   ❌ Do NOT optimize for happy paths
+
+* * * * *
+
+**✅ Definition of Done**
+------------------------
+
+This task is complete ONLY if:
+
+-   Your previous "Compliant" example now returns **NEEDS REVIEW**
+
+-   LOW risk is rare
+
+-   "Compliant" feels boring and earned
+
+-   No contradictions pass silently
+
+* * * * *
+
+**🧠 Reminder**
+---------------
+
+This tool's credibility comes from **saying "I don't know" early and often**.
+
+Proceed carefully. Show diffs.
+
+* * * * *

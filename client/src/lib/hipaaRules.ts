@@ -12,128 +12,11 @@ export interface HIPAARule {
 
 export const HIPAA_RULES: HIPAARule[] = [
   {
-    id: "hipaa_phi_no_baa",
-    description: "PHI processed without Business Associate Agreement",
+    id: "RULE_HIPAA_001",
+    description: "Unknown PHI Involvement",
     explanation:
-      "When PHI is involved and processed by a third-party vendor, a Business Associate Agreement (BAA) is required under HIPAA. Processing PHI without a BAA creates significant compliance risk and potential liability.",
-    citations: ["45 CFR §164.308(b)(1)", "45 CFR §164.502(e)", "45 CFR §164.504(e)"],
-    riskContribution: "high",
-    safeguard_category: "administrative",
-    condition: (profile, vendors) => {
-      if (profile.phi_involved !== true) return false;
-      return vendors.some(v => v.baa_available === false);
-    },
-  },
-  {
-    id: "hipaa_phi_baa_unknown",
-    description: "PHI processed with unknown BAA status",
-    explanation:
-      "When PHI is involved but the BAA status with a vendor is unknown, the organization cannot demonstrate compliance. This uncertainty must be resolved to ensure HIPAA compliance.",
-    citations: ["45 CFR §164.308(b)(1)", "45 CFR §164.504(e)"],
-    riskContribution: "needs_review",
-    safeguard_category: "administrative",
-    condition: (profile, vendors) => {
-      if (profile.phi_involved !== true) return false;
-      return vendors.some(v => v.baa_available === "unknown");
-    },
-  },
-  {
-    id: "hipaa_phi_logging_retained",
-    description: "PHI logged and retained without defined retention policy",
-    explanation:
-      "Retaining logs that contain PHI without a defined retention period violates the minimum necessary standard and creates ongoing risk. HIPAA requires policies for data retention and disposal.",
-    citations: ["45 CFR §164.530(j)", "45 CFR §164.502(b)"],
-    riskContribution: "high",
-    safeguard_category: "administrative",
-    condition: (profile) => {
-      if (profile.phi_involved !== true) return false;
-      return profile.logging_behavior === "retained" && profile.retention_period_defined !== true;
-    },
-  },
-  {
-    id: "hipaa_phi_unknown_logging",
-    description: "Unknown logging behavior with PHI involved",
-    explanation:
-      "When PHI is processed but logging behavior is unknown, the organization cannot ensure that PHI is not being improperly stored or retained. This must be investigated and documented.",
-    citations: ["45 CFR §164.312(b)", "45 CFR §164.308(a)(1)(ii)(D)"],
-    riskContribution: "needs_review",
-    safeguard_category: "technical",
-    condition: (profile) => {
-      if (profile.phi_involved !== true) return false;
-      return profile.logging_behavior === "unknown";
-    },
-  },
-  {
-    id: "hipaa_phi_no_access_controls",
-    description: "PHI processed without documented access controls",
-    explanation:
-      "HIPAA requires implementation of access controls to protect ePHI. When access controls are not documented or their status is unknown, compliance cannot be demonstrated.",
-    citations: ["45 CFR §164.312(a)(1)", "45 CFR §164.312(d)"],
-    riskContribution: "high",
-    safeguard_category: "technical",
-    condition: (profile) => {
-      if (profile.phi_involved !== true) return false;
-      return profile.access_controls_documented === false;
-    },
-  },
-  {
-    id: "hipaa_phi_unknown_access_controls",
-    description: "Unknown access control documentation status with PHI",
-    explanation:
-      "When PHI is involved but access control documentation status is unknown, the organization cannot demonstrate technical safeguard compliance. This requires immediate review.",
-    citations: ["45 CFR §164.312(a)(1)", "45 CFR §164.308(a)(4)"],
-    riskContribution: "needs_review",
-    safeguard_category: "technical",
-    condition: (profile) => {
-      if (profile.phi_involved !== true) return false;
-      return profile.access_controls_documented === "unknown";
-    },
-  },
-  {
-    id: "hipaa_phi_prod_unknown_org",
-    description: "PHI in production with unknown organization type",
-    explanation:
-      "Processing PHI in production when the organization's HIPAA status (covered entity, business associate) is unknown creates fundamental compliance uncertainty. HIPAA obligations depend on entity classification.",
-    citations: ["45 CFR §160.103", "45 CFR §164.502"],
-    riskContribution: "high",
-    safeguard_category: "organizational",
-    condition: (profile) => {
-      if (profile.phi_involved !== true) return false;
-      return profile.environment === "prod" && profile.organization_type === "unknown";
-    },
-  },
-  {
-    id: "hipaa_vendor_stores_phi",
-    description: "Vendor stores PHI without confirmed access controls",
-    explanation:
-      "When a vendor stores PHI (not just transient processing) and their access control documentation is unknown, there is risk that PHI may not be adequately protected at rest.",
-    citations: ["45 CFR §164.312(a)(1)", "45 CFR §164.308(b)(3)"],
-    riskContribution: "needs_review",
-    safeguard_category: "technical",
-    condition: (profile, vendors) => {
-      if (profile.phi_involved !== true) return false;
-      return vendors.some(v => v.data_storage === "stored" && v.access_controls_documented !== true);
-    },
-  },
-  {
-    id: "hipaa_vendor_logs_phi",
-    description: "Vendor logs PHI data",
-    explanation:
-      "When a vendor's logging is enabled and PHI is involved, there is risk that PHI may be captured in logs. Logging of PHI requires appropriate safeguards and potentially patient authorization.",
-    citations: ["45 CFR §164.312(b)", "45 CFR §164.530(j)"],
-    riskContribution: "needs_review",
-    safeguard_category: "technical",
-    condition: (profile, vendors) => {
-      if (profile.phi_involved !== true) return false;
-      return vendors.some(v => v.logging_enabled === true);
-    },
-  },
-  {
-    id: "hipaa_phi_unknown_involvement",
-    description: "Unknown PHI involvement status",
-    explanation:
-      "When it is unknown whether PHI is involved in an AI use case, conservative HIPAA compliance practices should be assumed. This uncertainty must be resolved through data classification.",
-    citations: ["45 CFR §164.514", "45 CFR §164.502(d)"],
+      "When it is unknown whether PHI is involved in an AI use case, conservative HIPAA compliance practices must be assumed. This uncertainty must be resolved through data classification before any risk determination can be made.",
+    citations: ["45 CFR §164.308(a)(1)(ii)(A)"],
     riskContribution: "needs_review",
     safeguard_category: "administrative",
     condition: (profile) => {
@@ -141,73 +24,123 @@ export const HIPAA_RULES: HIPAARule[] = [
     },
   },
   {
-    id: "hipaa_neither_entity_with_phi",
-    description: "Organization not a covered entity or BA processes PHI",
+    id: "RULE_HIPAA_002",
+    description: "PHI with No Vendors Declared",
     explanation:
-      "If an organization claims to be neither a covered entity nor a business associate but processes PHI, this classification needs review. Processing PHI typically creates HIPAA obligations.",
-    citations: ["45 CFR §160.103", "45 CFR §164.500"],
-    riskContribution: "needs_review",
-    safeguard_category: "organizational",
-    condition: (profile) => {
-      if (profile.phi_involved !== true) return false;
-      return profile.organization_type === "neither";
-    },
-  },
-  {
-    id: "hipaa_phi_multiple_vendors",
-    description: "PHI shared across multiple AI vendors",
-    explanation:
-      "When PHI flows through multiple vendors, each vendor relationship requires its own BAA and the data flow creates additional points of potential exposure. Complex vendor chains increase compliance burden.",
-    citations: ["45 CFR §164.308(b)(1)", "45 CFR §164.504(e)(2)"],
+      "When PHI is confirmed but no AI vendors are declared, this indicates either incomplete intake data or undocumented vendor relationships. HIPAA requires full documentation of all entities that handle PHI.",
+    citations: ["45 CFR §164.308(b)(1)"],
     riskContribution: "needs_review",
     safeguard_category: "administrative",
     condition: (profile, vendors) => {
-      if (profile.phi_involved !== true) return false;
-      return vendors.length > 1;
+      return profile.phi_involved === true && vendors.length === 0;
     },
   },
   {
-    id: "hipaa_phi_audio_transcription",
-    description: "Audio PHI processed via AI transcription",
+    id: "RULE_HIPAA_003",
+    description: "Vendor Without Business Associate Agreement",
     explanation:
-      "Audio recordings containing PHI (patient conversations, clinical dictation) processed through AI transcription services require careful vendor selection and BAA coverage. Audio data may contain sensitive information beyond structured data.",
-    citations: ["45 CFR §164.312(e)(1)", "45 CFR §164.530(c)"],
+      "When PHI is involved and any vendor does not have a confirmed BAA (baa_available !== true), this is a critical HIPAA violation. All vendors handling PHI must have executed BAAs.",
+    citations: ["45 CFR §164.308(b)(1)"],
+    riskContribution: "high",
+    safeguard_category: "administrative",
+    condition: (profile, vendors) => {
+      if (profile.phi_involved !== true) return false;
+      if (vendors.length === 0) return false;
+      return vendors.some(v => v.baa_available !== true);
+    },
+  },
+  {
+    id: "RULE_HIPAA_004",
+    description: "Retained PHI Logging",
+    explanation:
+      "When PHI is involved and logging behavior is set to 'retained', PHI may be persisted in logs indefinitely. This creates ongoing risk and requires explicit retention policies and safeguards.",
+    citations: ["45 CFR §164.312(b)"],
+    riskContribution: "high",
+    safeguard_category: "technical",
+    condition: (profile) => {
+      return profile.phi_involved === true && profile.logging_behavior === "retained";
+    },
+  },
+  {
+    id: "RULE_HIPAA_005",
+    description: "Unknown Logging in Production",
+    explanation:
+      "When the environment is production and logging behavior is unknown, audit controls cannot be verified. HIPAA requires documented audit controls for all production systems handling ePHI.",
+    citations: ["45 CFR §164.312(b)"],
     riskContribution: "needs_review",
     safeguard_category: "technical",
     condition: (profile) => {
-      if (profile.phi_involved !== true) return false;
-      return profile.ai_function === "transcription" && profile.phi_types.includes("audio");
+      return profile.environment === "prod" && profile.logging_behavior === "unknown";
     },
   },
   {
-    id: "hipaa_phi_free_text_chat",
-    description: "Free-text PHI in conversational AI",
+    id: "RULE_HIPAA_006",
+    description: "Undefined Retention Period",
     explanation:
-      "Conversational AI systems processing free-text clinical notes or patient communications may capture extensive PHI in unpredictable formats. This requires robust data handling and access controls.",
-    citations: ["45 CFR §164.502(b)", "45 CFR §164.514(d)"],
+      "When PHI is involved but retention period is not defined (retention_period_defined !== true), the organization cannot demonstrate compliance with data retention requirements under HIPAA.",
+    citations: ["45 CFR §164.312(c)(1)"],
+    riskContribution: "needs_review",
+    safeguard_category: "administrative",
+    condition: (profile) => {
+      return profile.phi_involved === true && profile.retention_period_defined !== true;
+    },
+  },
+  {
+    id: "RULE_HIPAA_007",
+    description: "Undocumented Access Controls",
+    explanation:
+      "When PHI is involved but access controls are not documented (access_controls_documented !== true), the organization cannot demonstrate technical safeguard compliance under HIPAA.",
+    citations: ["45 CFR §164.312(a)(1)"],
     riskContribution: "needs_review",
     safeguard_category: "technical",
     condition: (profile) => {
-      if (profile.phi_involved !== true) return false;
-      return profile.ai_function === "chat" && profile.phi_types.includes("free_text");
+      return profile.phi_involved === true && profile.access_controls_documented !== true;
     },
   },
   {
-    id: "hipaa_compliant_setup",
-    description: "Compliant HIPAA configuration identified",
+    id: "RULE_HIPAA_008",
+    description: "PHI Flag Inconsistency",
     explanation:
-      "This use case demonstrates proper HIPAA safeguards: confirmed BAAs with all vendors, documented access controls, defined retention policies, and known organizational status. Continue maintaining these controls.",
-    citations: ["45 CFR §164.308", "45 CFR §164.312", "45 CFR §164.530"],
+      "When phi_involved is false but phi_types array contains entries, there is a data inconsistency. Either PHI types were selected in error, or the phi_involved flag is incorrect. This must be resolved.",
+    citations: ["45 CFR §164.308(a)(1)(ii)(A)"],
+    riskContribution: "needs_review",
+    safeguard_category: "administrative",
+    condition: (profile) => {
+      return profile.phi_involved === false && profile.phi_types.length > 0;
+    },
+  },
+  {
+    id: "RULE_HIPAA_009",
+    description: "Explicit Non-PHI Use Case",
+    explanation:
+      "This use case explicitly confirms no PHI involvement, no vendor relationships, and no retained logging. When PHI is not involved, HIPAA obligations do not apply to this use case.",
+    citations: ["45 CFR §164.502(a)"],
     riskContribution: "low",
     safeguard_category: "organizational",
     condition: (profile, vendors) => {
-      if (profile.phi_involved !== true) return true;
+      return (
+        profile.phi_involved === false &&
+        vendors.length === 0 &&
+        profile.logging_behavior !== "retained"
+      );
+    },
+  },
+  {
+    id: "RULE_HIPAA_010",
+    description: "Fully Characterized Low-Risk PHI Use",
+    explanation:
+      "This use case demonstrates comprehensive HIPAA safeguards: confirmed BAAs with all vendors, appropriate logging controls (none or transient), defined retention period, and documented access controls.",
+    citations: ["45 CFR §164.308", "45 CFR §164.312"],
+    riskContribution: "low",
+    safeguard_category: "organizational",
+    condition: (profile, vendors) => {
+      if (profile.phi_involved !== true) return false;
+      if (vendors.length === 0) return false;
       const allBaasConfirmed = vendors.every(v => v.baa_available === true);
-      const accessControlsOk = profile.access_controls_documented === true;
-      const loggingOk = profile.logging_behavior !== "unknown" && 
-        (profile.logging_behavior !== "retained" || profile.retention_period_defined === true);
-      const orgKnown = profile.organization_type !== "unknown";
-      return allBaasConfirmed && accessControlsOk && loggingOk && orgKnown;
+      const loggingOk = profile.logging_behavior === "none" || profile.logging_behavior === "transient";
+      const retentionDefined = profile.retention_period_defined === true;
+      const accessControlsDocumented = profile.access_controls_documented === true;
+      return allBaasConfirmed && loggingOk && retentionDefined && accessControlsDocumented;
     },
   },
 ];

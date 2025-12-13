@@ -19,11 +19,30 @@ export function auditHIPAA(
     }
   }
 
+  console.log("[HIPAA AUDIT] Triggered rules:", triggeredRules.map(r => r.id));
+
   const riskClassification = determineHIPAARiskClassification(triggeredRules);
-  const confidenceScore = calculateHIPAAConfidenceScore(triggeredRules, profile);
+  const confidenceScore = calculateHIPAAConfidenceScore(triggeredRules, profile, vendors);
   const relevantCitations = extractUniqueCitations(triggeredRules);
-  const statusFlag = determineHIPAAStatusFlag(riskClassification, triggeredRules);
+  const statusFlag = determineHIPAAStatusFlag(riskClassification, triggeredRules, confidenceScore);
   const vendorAnalysis = analyzeVendors(profile, vendors, triggeredRules);
+
+  // STEP 4: Runtime assertions for correctness
+  const needsReviewRules = triggeredRules.filter(r => r.riskContribution === "needs_review");
+  
+  if (riskClassification === "Low Risk" && needsReviewRules.length > 0) {
+    console.error("ASSERTION FAILED: LOW risk with unresolved review items");
+    throw new Error("Invalid state: LOW risk with unresolved review items");
+  }
+  
+  if (vendors.length === 0 && profile.phi_involved === true && riskClassification === "Low Risk") {
+    console.error("ASSERTION FAILED: PHI with no vendors marked LOW");
+    throw new Error("Invalid state: PHI with no vendors marked LOW");
+  }
+
+  console.log("[HIPAA AUDIT] Final risk:", riskClassification);
+  console.log("[HIPAA AUDIT] Final status:", statusFlag);
+  console.log("[HIPAA AUDIT] Confidence:", confidenceScore);
 
   return {
     riskClassification,
@@ -41,26 +60,31 @@ function determineHIPAARiskClassification(
 ): "High Risk" | "Needs Review" | "Low Risk" {
   const hasHighRisk = triggeredRules.some((r) => r.riskContribution === "high");
   const hasNeedsReview = triggeredRules.some((r) => r.riskContribution === "needs_review");
+  const hasLowRisk = triggeredRules.some((r) => r.riskContribution === "low");
 
+  // HIGH > NEEDS REVIEW > LOW - aggregation stays
   if (hasHighRisk) {
     return "High Risk";
   }
   if (hasNeedsReview) {
     return "Needs Review";
   }
-  return "Low Risk";
+  // LOW only if explicitly triggered by a LOW rule
+  if (hasLowRisk) {
+    return "Low Risk";
+  }
+  // No rules triggered = uncertainty = NEEDS REVIEW (never default compliant)
+  return "Needs Review";
 }
 
 function calculateHIPAAConfidenceScore(
   triggeredRules: HIPAATriggeredRule[],
-  profile: HIPAAUseCaseProfile
+  profile: HIPAAUseCaseProfile,
+  vendors: VendorPHIMetadata[]
 ): number {
-  if (triggeredRules.length === 0) {
-    return 0.5;
-  }
-
-  let baseScore = 0.6;
+  let baseScore = 0.7;
   
+  // Penalize unknowns heavily
   const unknownFactors = [
     profile.phi_involved === "unknown",
     profile.organization_type === "unknown",
@@ -69,15 +93,24 @@ function calculateHIPAAConfidenceScore(
     profile.access_controls_documented === "unknown",
   ].filter(Boolean).length;
 
-  const uncertaintyPenalty = unknownFactors * 0.08;
+  const uncertaintyPenalty = unknownFactors * 0.1;
   baseScore -= uncertaintyPenalty;
 
-  const ruleBonus = Math.min(triggeredRules.length * 0.05, 0.25);
-  
-  const highRiskCount = triggeredRules.filter((r) => r.riskContribution === "high").length;
-  const clarityBonus = highRiskCount > 0 ? 0.05 : 0;
+  // Penalize vendor unknowns
+  const vendorUnknowns = vendors.filter(v => 
+    v.baa_available === "unknown" || 
+    v.data_storage === "unknown" || 
+    v.logging_enabled === "unknown" ||
+    v.access_controls_documented === "unknown"
+  ).length;
+  baseScore -= vendorUnknowns * 0.05;
 
-  return Math.max(0.3, Math.min(baseScore + ruleBonus + clarityBonus, 0.95));
+  // Bonus for high rule coverage (more rules = more certainty)
+  const ruleBonus = Math.min(triggeredRules.length * 0.03, 0.15);
+  baseScore += ruleBonus;
+
+  // Clamp to valid range
+  return Math.max(0.3, Math.min(baseScore, 0.95));
 }
 
 function extractUniqueCitations(triggeredRules: HIPAATriggeredRule[]): string[] {
@@ -94,19 +127,44 @@ function extractUniqueCitations(triggeredRules: HIPAATriggeredRule[]): string[] 
 
 function determineHIPAAStatusFlag(
   riskClassification: "High Risk" | "Needs Review" | "Low Risk",
-  triggeredRules: HIPAATriggeredRule[]
+  triggeredRules: HIPAATriggeredRule[],
+  confidenceScore: number
 ): "Needs Manual Review" | "Compliant" | "Non-Compliant" {
+  // STEP 3: ENFORCE "COMPLIANT" GATING
+  // Compliant is allowed ONLY if:
+  // - Final risk === LOW
+  // - No NEEDS REVIEW rules triggered
+  // - Confidence >= 70%
+
   if (riskClassification === "High Risk") {
     return "Non-Compliant";
   }
+  
   if (riskClassification === "Needs Review") {
     return "Needs Manual Review";
   }
-  const hasOnlyLowRisk = triggeredRules.every((r) => r.riskContribution === "low");
-  if (hasOnlyLowRisk && triggeredRules.length > 0) {
-    return "Compliant";
+  
+  // riskClassification is "Low Risk" at this point
+  const hasNeedsReview = triggeredRules.some(r => r.riskContribution === "needs_review");
+  const hasLowRiskRule = triggeredRules.some(r => r.riskContribution === "low");
+  
+  // Gate: confidence must be >= 70%
+  if (confidenceScore < 0.70) {
+    return "Needs Manual Review";
   }
-  return "Needs Manual Review";
+  
+  // Gate: no NEEDS REVIEW rules can be triggered
+  if (hasNeedsReview) {
+    return "Needs Manual Review";
+  }
+  
+  // Gate: must have at least one explicit LOW rule triggered
+  if (!hasLowRiskRule) {
+    return "Needs Manual Review";
+  }
+  
+  // All gates passed - COMPLIANT is earned
+  return "Compliant";
 }
 
 function analyzeVendors(
@@ -118,19 +176,19 @@ function analyzeVendors(
     const riskFactors: string[] = [];
 
     if (vendor.baa_available === false) {
-      riskFactors.push("No BAA available");
+      riskFactors.push("No BAA available - CRITICAL");
     } else if (vendor.baa_available === "unknown") {
-      riskFactors.push("BAA status unknown");
+      riskFactors.push("BAA status unknown - needs verification");
     }
 
     if (vendor.data_storage === "stored") {
-      riskFactors.push("Stores PHI data");
+      riskFactors.push("Stores PHI data at rest");
     } else if (vendor.data_storage === "unknown") {
       riskFactors.push("Data storage behavior unknown");
     }
 
     if (vendor.logging_enabled === true) {
-      riskFactors.push("Logging enabled");
+      riskFactors.push("Logging enabled - PHI may be in logs");
     } else if (vendor.logging_enabled === "unknown") {
       riskFactors.push("Logging behavior unknown");
     }
