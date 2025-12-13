@@ -140,42 +140,35 @@ export function ContactSection({
   return (
     <section
       ref={ref}
-      className="flex min-h-screen w-screen shrink-0 snap-start items-start overflow-y-auto px-4 py-8 md:items-center md:overflow-y-visible md:px-12 md:py-0 lg:px-16"
+      className="flex h-screen w-screen shrink-0 snap-start flex-col justify-between px-4 py-4 md:justify-center md:px-12 md:py-0 lg:px-16"
     >
-      <div className="mx-auto w-full max-w-7xl">
-        <div className="grid gap-6 md:grid-cols-[1.2fr_1fr] md:gap-16 lg:gap-24">
+      <div className="mx-auto w-full max-w-7xl flex-1 md:flex-initial">
+        <div className="grid gap-3 md:grid-cols-[1.2fr_1fr] md:gap-16 lg:gap-24">
           {/* Left side - Header and text inputs */}
-          <div className="flex flex-col justify-center">
+          <div className="flex flex-col">
             <div
-              className={`mb-4 transition-all duration-700 md:mb-12 ${
+              className={`mb-2 transition-all duration-700 md:mb-12 ${
                 isVisible ? "translate-x-0 opacity-100" : "-translate-x-12 opacity-0"
               }`}
             >
-              <h2 className="mb-1 font-sans text-3xl font-light leading-[1.05] tracking-tight text-foreground md:mb-3 md:text-7xl lg:text-8xl">
-                Data
-                <br />
-                Handling
+              <h2 className="mb-0.5 font-sans text-2xl font-light leading-[1.05] tracking-tight text-foreground md:mb-3 md:text-7xl lg:text-8xl">
+                Data Handling
               </h2>
-              <p className="font-mono text-xs text-foreground/60 md:text-base">/ Vendor and data flow details</p>
+              <p className="font-mono text-[10px] text-foreground/60 md:text-base">/ Vendor and data flow details</p>
             </div>
 
-            {/* Mobile Section Header: PHI Details */}
-            <div className="mb-3 mt-2 md:hidden">
-              <p className="font-mono text-[10px] uppercase tracking-wider text-foreground/40">PHI Details</p>
-            </div>
-
-            <div className="space-y-3 md:space-y-6">
-              {/* PHI Types Inputs */}
+            <div className="space-y-2 md:space-y-6">
+              {/* PHI Types - Compact on mobile */}
               <div
                 className={`transition-all duration-700 ${
                   isVisible ? "translate-x-0 opacity-100" : "-translate-x-16 opacity-0"
                 }`}
                 style={{ transitionDelay: "200ms" }}
               >
-                <label className="mb-1 block font-mono text-xs text-foreground/60 md:mb-2">
+                <label className="mb-0.5 block font-mono text-[10px] text-foreground/60 md:mb-2 md:text-xs">
                   PHI Types
                 </label>
-                <div className="space-y-2 md:space-y-3">
+                <div className="space-y-1 md:space-y-3">
                   {phiTypes.map((phiType, index) => (
                     <input
                       key={index}
@@ -184,8 +177,8 @@ export function ContactSection({
                       value={phiType}
                       onChange={(e) => updatePhiType(index, e.target.value)}
                       disabled={isReviewReady}
-                      className={`w-full border-b border-foreground/30 bg-transparent py-1.5 text-sm text-foreground placeholder:text-foreground/40 focus:border-foreground/50 focus:outline-none md:py-2 md:text-base ${isReviewReady ? "opacity-60 cursor-not-allowed" : ""}`}
-                      placeholder={index === 0 ? "e.g., Names, DOB, Medical Records" : "Add another PHI type..."}
+                      className={`w-full border-b border-foreground/30 bg-transparent py-1 text-sm text-foreground placeholder:text-foreground/40 focus:border-foreground/50 focus:outline-none md:py-2 md:text-base ${isReviewReady ? "opacity-60 cursor-not-allowed" : ""}`}
+                      placeholder={index === 0 ? "e.g., Names, DOB, Records" : "Add another..."}
                     />
                   ))}
                 </div>
@@ -193,48 +186,41 @@ export function ContactSection({
                   <button
                     type="button"
                     onClick={addPhiType}
-                    className="mt-1.5 font-mono text-xs text-foreground/50 transition-opacity hover:opacity-80 md:mt-2"
+                    className="mt-1 font-mono text-[10px] text-foreground/50 transition-opacity hover:opacity-80 md:mt-2 md:text-xs"
                   >
                     + Add PHI type
                   </button>
                 )}
               </div>
 
-              {/* Mobile Section Header: Vendors & Third Parties */}
-              <div className="mt-4 md:hidden">
-                <p className="font-mono text-[10px] uppercase tracking-wider text-foreground/40">Vendors & Third Parties</p>
-              </div>
-
-              {/* Vendors Section - Full kernel-aligned intake */}
+              {/* Vendors Section - Compact on mobile */}
               <div
                 className={`transition-all duration-700 ${
                   isVisible ? "translate-y-0 opacity-100" : "translate-y-12 opacity-0"
                 }`}
                 style={{ transitionDelay: "350ms" }}
               >
-                <label className="mb-1 block font-mono text-xs text-foreground/60 md:mb-2">
-                  AI Vendors / Third Parties
+                <label className="mb-0.5 block font-mono text-[10px] text-foreground/60 md:mb-2 md:text-xs">
+                  AI Vendors
                 </label>
-                <div className="space-y-3 md:space-y-4">
+                <div className="space-y-2 md:space-y-4">
                   {vendors.map((vendor, index) => (
-                    <div key={index} className="rounded border border-foreground/20 bg-foreground/5 p-2.5 md:p-3">
-                      {/* Vendor Name */}
+                    <div key={index} className="rounded border border-foreground/20 bg-foreground/5 p-2 md:p-3">
                       <input
                         ref={(el) => { vendorInputRefs.current[index] = el }}
                         type="text"
                         value={vendor.vendor_name}
                         onChange={(e) => updateVendorField(index, "vendor_name", e.target.value)}
                         disabled={isReviewReady}
-                        className={`mb-2 w-full border-b border-foreground/30 bg-transparent py-1 text-sm text-foreground placeholder:text-foreground/40 focus:border-foreground/50 focus:outline-none md:mb-3 ${isReviewReady ? "opacity-60 cursor-not-allowed" : ""}`}
-                        placeholder={index === 0 ? "Vendor name (e.g., OpenAI)" : "Vendor name"}
+                        className={`mb-1.5 w-full border-b border-foreground/30 bg-transparent py-0.5 text-sm text-foreground placeholder:text-foreground/40 focus:border-foreground/50 focus:outline-none md:mb-3 md:py-1 ${isReviewReady ? "opacity-60 cursor-not-allowed" : ""}`}
+                        placeholder="Vendor name"
                       />
-                      <div className="grid grid-cols-1 gap-1.5 md:grid-cols-3 md:gap-2">
-                        {/* BAA Available */}
+                      <div className="grid grid-cols-3 gap-1 md:gap-2">
                         <select
                           value={vendor.baa_available}
                           onChange={(e) => updateVendorField(index, "baa_available", e.target.value)}
                           disabled={isReviewReady}
-                          className={`w-full border-b border-foreground/30 bg-transparent py-1 text-xs text-foreground focus:border-foreground/50 focus:outline-none ${isReviewReady ? "opacity-60 cursor-not-allowed" : ""}`}
+                          className={`w-full border-b border-foreground/30 bg-transparent py-0.5 text-[10px] text-foreground focus:border-foreground/50 focus:outline-none md:py-1 md:text-xs ${isReviewReady ? "opacity-60 cursor-not-allowed" : ""}`}
                         >
                           {baaOptions.map((opt) => (
                             <option key={opt.value} value={opt.value} className="bg-background text-foreground">
@@ -242,12 +228,11 @@ export function ContactSection({
                             </option>
                           ))}
                         </select>
-                        {/* Storage Behavior */}
                         <select
                           value={vendor.storage_behavior}
                           onChange={(e) => updateVendorField(index, "storage_behavior", e.target.value)}
                           disabled={isReviewReady}
-                          className={`w-full border-b border-foreground/30 bg-transparent py-1 text-xs text-foreground focus:border-foreground/50 focus:outline-none ${isReviewReady ? "opacity-60 cursor-not-allowed" : ""}`}
+                          className={`w-full border-b border-foreground/30 bg-transparent py-0.5 text-[10px] text-foreground focus:border-foreground/50 focus:outline-none md:py-1 md:text-xs ${isReviewReady ? "opacity-60 cursor-not-allowed" : ""}`}
                         >
                           {storageOptions.map((opt) => (
                             <option key={opt.value} value={opt.value} className="bg-background text-foreground">
@@ -255,12 +240,11 @@ export function ContactSection({
                             </option>
                           ))}
                         </select>
-                        {/* Logging Enabled */}
                         <select
                           value={vendor.logging_enabled}
                           onChange={(e) => updateVendorField(index, "logging_enabled", e.target.value)}
                           disabled={isReviewReady}
-                          className={`w-full border-b border-foreground/30 bg-transparent py-1 text-xs text-foreground focus:border-foreground/50 focus:outline-none ${isReviewReady ? "opacity-60 cursor-not-allowed" : ""}`}
+                          className={`w-full border-b border-foreground/30 bg-transparent py-0.5 text-[10px] text-foreground focus:border-foreground/50 focus:outline-none md:py-1 md:text-xs ${isReviewReady ? "opacity-60 cursor-not-allowed" : ""}`}
                         >
                           {vendorLoggingOptions.map((opt) => (
                             <option key={opt.value} value={opt.value} className="bg-background text-foreground">
@@ -276,7 +260,7 @@ export function ContactSection({
                   <button
                     type="button"
                     onClick={addVendor}
-                    className="mt-1.5 font-mono text-xs text-foreground/50 transition-opacity hover:opacity-80 md:mt-2"
+                    className="mt-1 font-mono text-[10px] text-foreground/50 transition-opacity hover:opacity-80 md:mt-2 md:text-xs"
                   >
                     + Add vendor
                   </button>
@@ -285,29 +269,23 @@ export function ContactSection({
             </div>
           </div>
 
-          {/* Right side - Dropdowns */}
-          <div className="flex flex-col justify-center">
-            {/* Mobile Section Header: Operational Controls */}
-            <div className="mb-3 mt-2 md:hidden">
-              <p className="font-mono text-[10px] uppercase tracking-wider text-foreground/40">Operational Controls</p>
-            </div>
+          {/* Right side - Operational Controls */}
+          <div className="flex flex-col">
+            <p className="mb-1 font-mono text-[10px] uppercase tracking-wider text-foreground/40 md:hidden">
+              Operational Controls
+            </p>
 
-            <div className="space-y-3 md:space-y-6">
-              {/* Logging Behavior Dropdown */}
-              <div
-                className={`transition-all duration-700 ${
-                  isVisible ? "translate-x-0 opacity-100" : "translate-x-16 opacity-0"
-                }`}
-                style={{ transitionDelay: "200ms" }}
-              >
-                <label className="mb-1 block font-mono text-xs text-foreground/60 md:mb-2">
-                  Logging Behavior
+            {/* 2x2 grid for dropdowns on mobile */}
+            <div className="grid grid-cols-2 gap-2 md:grid-cols-1 md:space-y-6">
+              <div className={`transition-all duration-700 ${isVisible ? "opacity-100" : "opacity-0"}`}>
+                <label className="mb-0.5 block font-mono text-[10px] text-foreground/60 md:mb-2 md:text-xs">
+                  Logging
                 </label>
                 <select
                   value={loggingBehavior}
                   onChange={(e) => onLoggingBehaviorChange(e.target.value)}
                   disabled={isReviewReady}
-                  className={`w-full border-b border-foreground/30 bg-transparent py-1.5 text-sm text-foreground focus:border-foreground/50 focus:outline-none md:py-2 md:text-base ${isReviewReady ? "opacity-60 cursor-not-allowed" : ""}`}
+                  className={`w-full border-b border-foreground/30 bg-transparent py-1 text-xs text-foreground focus:border-foreground/50 focus:outline-none md:py-2 md:text-base ${isReviewReady ? "opacity-60 cursor-not-allowed" : ""}`}
                 >
                   {loggingOptions.map((option) => (
                     <option key={option.value} value={option.value} className="bg-background text-foreground">
@@ -317,21 +295,15 @@ export function ContactSection({
                 </select>
               </div>
 
-              {/* Environment Dropdown */}
-              <div
-                className={`transition-all duration-700 ${
-                  isVisible ? "translate-x-0 opacity-100" : "translate-x-16 opacity-0"
-                }`}
-                style={{ transitionDelay: "350ms" }}
-              >
-                <label className="mb-1 block font-mono text-xs text-foreground/60 md:mb-2">
-                  Deployment Environment
+              <div className={`transition-all duration-700 ${isVisible ? "opacity-100" : "opacity-0"}`}>
+                <label className="mb-0.5 block font-mono text-[10px] text-foreground/60 md:mb-2 md:text-xs">
+                  Environment
                 </label>
                 <select
                   value={environment}
                   onChange={(e) => onEnvironmentChange(e.target.value)}
                   disabled={isReviewReady}
-                  className={`w-full border-b border-foreground/30 bg-transparent py-1.5 text-sm text-foreground focus:border-foreground/50 focus:outline-none md:py-2 md:text-base ${isReviewReady ? "opacity-60 cursor-not-allowed" : ""}`}
+                  className={`w-full border-b border-foreground/30 bg-transparent py-1 text-xs text-foreground focus:border-foreground/50 focus:outline-none md:py-2 md:text-base ${isReviewReady ? "opacity-60 cursor-not-allowed" : ""}`}
                 >
                   {environmentOptions.map((option) => (
                     <option key={option.value} value={option.value} className="bg-background text-foreground">
@@ -341,21 +313,15 @@ export function ContactSection({
                 </select>
               </div>
 
-              {/* Retention Period Defined Dropdown */}
-              <div
-                className={`transition-all duration-700 ${
-                  isVisible ? "translate-x-0 opacity-100" : "translate-x-16 opacity-0"
-                }`}
-                style={{ transitionDelay: "450ms" }}
-              >
-                <label className="mb-1 block font-mono text-xs text-foreground/60 md:mb-2">
-                  Data Retention Period Defined?
+              <div className={`transition-all duration-700 ${isVisible ? "opacity-100" : "opacity-0"}`}>
+                <label className="mb-0.5 block font-mono text-[10px] text-foreground/60 md:mb-2 md:text-xs">
+                  Retention Defined?
                 </label>
                 <select
                   value={retentionPeriodDefined}
                   onChange={(e) => onRetentionPeriodDefinedChange(e.target.value)}
                   disabled={isReviewReady}
-                  className={`w-full border-b border-foreground/30 bg-transparent py-1.5 text-sm text-foreground focus:border-foreground/50 focus:outline-none md:py-2 md:text-base ${isReviewReady ? "opacity-60 cursor-not-allowed" : ""}`}
+                  className={`w-full border-b border-foreground/30 bg-transparent py-1 text-xs text-foreground focus:border-foreground/50 focus:outline-none md:py-2 md:text-base ${isReviewReady ? "opacity-60 cursor-not-allowed" : ""}`}
                 >
                   {retentionOptions.map((option) => (
                     <option key={option.value} value={option.value} className="bg-background text-foreground">
@@ -365,21 +331,15 @@ export function ContactSection({
                 </select>
               </div>
 
-              {/* Access Controls Documented Dropdown */}
-              <div
-                className={`transition-all duration-700 ${
-                  isVisible ? "translate-x-0 opacity-100" : "translate-x-16 opacity-0"
-                }`}
-                style={{ transitionDelay: "550ms" }}
-              >
-                <label className="mb-1 block font-mono text-xs text-foreground/60 md:mb-2">
-                  Access Controls Documented?
+              <div className={`transition-all duration-700 ${isVisible ? "opacity-100" : "opacity-0"}`}>
+                <label className="mb-0.5 block font-mono text-[10px] text-foreground/60 md:mb-2 md:text-xs">
+                  Access Controls?
                 </label>
                 <select
                   value={accessControlsDocumented}
                   onChange={(e) => onAccessControlsDocumentedChange(e.target.value)}
                   disabled={isReviewReady}
-                  className={`w-full border-b border-foreground/30 bg-transparent py-1.5 text-sm text-foreground focus:border-foreground/50 focus:outline-none md:py-2 md:text-base ${isReviewReady ? "opacity-60 cursor-not-allowed" : ""}`}
+                  className={`w-full border-b border-foreground/30 bg-transparent py-1 text-xs text-foreground focus:border-foreground/50 focus:outline-none md:py-2 md:text-base ${isReviewReady ? "opacity-60 cursor-not-allowed" : ""}`}
                 >
                   {accessControlsOptions.map((option) => (
                     <option key={option.value} value={option.value} className="bg-background text-foreground">
@@ -388,32 +348,29 @@ export function ContactSection({
                   ))}
                 </select>
               </div>
-
-              {/* Submit Button */}
-              <div
-                className={`mt-4 border-t border-foreground/10 pt-4 transition-all duration-700 md:mt-0 md:border-0 md:pt-6 ${
-                  isVisible ? "translate-y-0 opacity-100" : "translate-y-12 opacity-0"
-                }`}
-                style={{ transitionDelay: "500ms" }}
-              >
-                <p className="mb-3 text-center font-mono text-[10px] text-foreground/40 md:hidden">
-                  All required inputs collected for evaluation
-                </p>
-                <MagneticButton
-                  variant="primary"
-                  size="lg"
-                  className={`w-full ${isReviewReady ? "opacity-60 cursor-not-allowed" : ""}`}
-                  onClick={isReviewReady ? undefined : onReviewClick}
-                >
-                  {isReviewReady ? "Assessment Submitted" : "Review Assessment"}
-                </MagneticButton>
-                <p className="mt-2 text-center font-mono text-xs text-foreground/50 md:mt-3">
-                  {isReviewReady ? "Scroll right to view summary" : "Local state only — no data is sent"}
-                </p>
-              </div>
             </div>
           </div>
         </div>
+      </div>
+
+      {/* CTA anchored to bottom */}
+      <div
+        className={`mx-auto w-full max-w-7xl border-t border-foreground/10 pt-3 transition-all duration-700 md:mt-16 md:border-0 md:pt-6 ${
+          isVisible ? "translate-y-0 opacity-100" : "translate-y-12 opacity-0"
+        }`}
+        style={{ transitionDelay: "500ms" }}
+      >
+        <MagneticButton
+          variant="primary"
+          size="lg"
+          className={`w-full md:w-auto ${isReviewReady ? "opacity-60 cursor-not-allowed" : ""}`}
+          onClick={isReviewReady ? undefined : onReviewClick}
+        >
+          {isReviewReady ? "Assessment Submitted" : "Review Assessment"}
+        </MagneticButton>
+        <p className="mt-1 text-center font-mono text-[10px] text-foreground/50 md:mt-3 md:text-left md:text-xs">
+          {isReviewReady ? "Scroll right to view summary" : "Local state only — no data is sent"}
+        </p>
       </div>
     </section>
   )

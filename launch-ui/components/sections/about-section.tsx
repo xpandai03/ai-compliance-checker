@@ -28,23 +28,23 @@ export function AboutSection({
   return (
     <section
       ref={ref}
-      className="flex h-screen w-screen shrink-0 snap-start items-center px-4 pt-12 md:px-12 md:pt-0 lg:px-16"
+      className="flex h-screen w-screen shrink-0 snap-start flex-col justify-between px-4 py-6 md:justify-center md:px-12 md:py-0 lg:px-16"
     >
-      <div className="mx-auto w-full max-w-7xl">
-        <div className="grid gap-8 md:grid-cols-2 md:gap-16 lg:gap-24">
+      <div className="mx-auto w-full max-w-7xl flex-1 md:flex-initial">
+        <div className="grid gap-4 md:grid-cols-2 md:gap-16 lg:gap-24">
           {/* Left side - PHI Involvement */}
           <div>
             <div
-              className={`mb-6 transition-all duration-700 md:mb-12 ${
+              className={`mb-4 transition-all duration-700 md:mb-12 ${
                 isVisible ? "translate-y-0 opacity-100" : "-translate-y-12 opacity-0"
               }`}
             >
-              <h2 className="mb-3 font-sans text-3xl font-light leading-[1.1] tracking-tight text-foreground md:mb-4 md:text-6xl lg:text-7xl">
+              <h2 className="mb-2 font-sans text-3xl font-light leading-[1.1] tracking-tight text-foreground md:mb-4 md:text-6xl lg:text-7xl">
                 PHI
                 <br />
                 Involvement
               </h2>
-              <p className="font-mono text-sm text-foreground/60 md:text-base">
+              <p className="font-mono text-xs text-foreground/60 md:text-base">
                 / Does this AI system process Protected Health Information?
               </p>
             </div>
@@ -73,7 +73,7 @@ export function AboutSection({
             </div>
 
             <div
-              className={`mt-6 space-y-3 transition-all duration-700 md:mt-8 md:space-y-4 ${
+              className={`mt-4 transition-all duration-700 md:mt-8 ${
                 isVisible ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"
               }`}
               style={{ transitionDelay: "350ms" }}
@@ -85,8 +85,8 @@ export function AboutSection({
             </div>
           </div>
 
-          {/* Right side - PHI Examples */}
-          <div className="flex flex-col justify-center space-y-6 md:space-y-12">
+          {/* Right side - PHI Examples (hidden on mobile) */}
+          <div className="hidden flex-col justify-center space-y-12 md:flex">
             {[
               { value: "Names", label: "Patient names", sublabel: "Direct identifiers", direction: "right" },
               { value: "Records", label: "Medical records", sublabel: "Clinical data", direction: "left" },
@@ -102,16 +102,16 @@ export function AboutSection({
               return (
                 <div
                   key={i}
-                  className={`flex items-baseline gap-4 border-l border-foreground/30 pl-4 transition-all duration-700 md:gap-8 md:pl-8 ${getRevealClass()}`}
+                  className={`flex items-baseline gap-8 border-l border-foreground/30 pl-8 transition-all duration-700 ${getRevealClass()}`}
                   style={{
                     transitionDelay: `${400 + i * 150}ms`,
                     marginLeft: i % 2 === 0 ? "0" : "auto",
                     maxWidth: i % 2 === 0 ? "100%" : "85%",
                   }}
                 >
-                  <div className="text-2xl font-light text-foreground md:text-4xl lg:text-5xl">{stat.value}</div>
+                  <div className="text-4xl font-light text-foreground lg:text-5xl">{stat.value}</div>
                   <div>
-                    <div className="font-sans text-base font-light text-foreground md:text-xl">{stat.label}</div>
+                    <div className="font-sans text-xl font-light text-foreground">{stat.label}</div>
                     <div className="font-mono text-xs text-foreground/60">{stat.sublabel}</div>
                   </div>
                 </div>
@@ -119,17 +119,18 @@ export function AboutSection({
             })}
           </div>
         </div>
+      </div>
 
-        <div
-          className={`mt-8 flex flex-wrap gap-3 transition-all duration-700 md:mt-16 md:gap-4 ${
-            isVisible ? "translate-y-0 opacity-100" : "translate-y-12 opacity-0"
-          }`}
-          style={{ transitionDelay: "750ms" }}
-        >
-          <MagneticButton size="lg" variant="secondary" onClick={onNext}>
-            Next
-          </MagneticButton>
-        </div>
+      {/* CTA anchored to bottom on mobile */}
+      <div
+        className={`mx-auto w-full max-w-7xl pt-4 transition-all duration-700 md:mt-16 md:pt-0 ${
+          isVisible ? "translate-y-0 opacity-100" : "translate-y-12 opacity-0"
+        }`}
+        style={{ transitionDelay: "750ms" }}
+      >
+        <MagneticButton size="lg" variant="secondary" onClick={onNext}>
+          Next
+        </MagneticButton>
       </div>
     </section>
   )
