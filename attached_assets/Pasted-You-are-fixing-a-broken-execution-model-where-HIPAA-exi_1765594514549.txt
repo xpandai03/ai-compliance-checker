@@ -1,0 +1,220 @@
+You are fixing a broken execution model where HIPAA exists in code but is never activated.
+
+This is a **state authority bug**, not a UI bug.
+
+* * * * *
+
+**❗ Ground Truth (from logs)**
+------------------------------
+
+Even when HIPAA is selected:
+
+-   regulation remains "eu_ai_act"
+
+-   hasHIPAAFindings === false
+
+-   EU findings are rendered and exported
+
+HIPAA is never becoming the active execution context.
+
+* * * * *
+
+**🎯 Objective**
+----------------
+
+Make **HIPAA the authoritative regulation** when selected, such that:
+
+-   regulation === "hipaa" when HIPAA tab is active
+
+-   HIPAA audit runs
+
+-   HIPAA findings populate
+
+-   EU findings are ignored
+
+-   EU output becomes impossible in HIPAA mode
+
+* * * * *
+
+**🧩 STEP 1 --- Centralize regulation state (MANDATORY)**
+-------------------------------------------------------
+
+In client/src/pages/home.tsx:
+
+1.  Locate where regulation is currently stored (likely useState("eu_ai_act"))
+
+2.  Ensure:
+
+    -   There is exactly **ONE** regulation state
+
+    -   It is updated **only** via the tab toggle
+
+Example (adapt as needed):
+
+```
+const [regulation, setRegulation] = useState<"eu_ai_act" | "hipaa">("eu_ai_act")
+```
+
+The HIPAA tab **must call**:
+
+```
+setRegulation("hipaa")
+```
+
+No derived values. No defaults elsewhere.
+
+* * * * *
+
+**🧩 STEP 2 --- Separate findings state (CRITICAL)**
+--------------------------------------------------
+
+You must have **separate state containers**:
+
+```
+const [euFindings, setEUFindings] = useState<AuditResult | null>(null)
+const [hipaaFindings, setHIPAAFindings] = useState<AuditResult | null>(null)
+```
+
+🚫 Do NOT reuse the same findings object.
+
+* * * * *
+
+**🧩 STEP 3 --- HARD execution split (NO FALLBACKS)**
+---------------------------------------------------
+
+In the function that runs when "Run Scan" is clicked:
+
+```
+if (regulation === "eu_ai_act") {
+  const result = runEUAIActAudit(...)
+  setEUFindings(result)
+  setHIPAAFindings(null)
+}
+
+if (regulation === "hipaa") {
+  const result = runHIPAAAudit(...)
+  setHIPAAFindings(result)
+  setEUFindings(null)
+}
+```
+
+❌ Do NOT call both
+
+❌ Do NOT default to EU
+
+❌ Do NOT infer regulation
+
+* * * * *
+
+**🧩 STEP 4 --- RENDER BASED ON REGULATION ONLY**
+-----------------------------------------------
+
+Rendering must be explicit:
+
+```
+{regulation === "eu_ai_act" && euFindings && (
+  <EUAuditTimeline findings={euFindings} />
+)}
+
+{regulation === "hipaa" && hipaaFindings && (
+  <HIPAAAuditTimeline findings={hipaaFindings} />
+)}
+```
+
+🚫 Never render EU components when regulation === hipaa.
+
+* * * * *
+
+**🧩 STEP 5 --- HARD ASSERTION (NON-NEGOTIABLE)**
+-----------------------------------------------
+
+Add this check before rendering results:
+
+```
+if (regulation === "hipaa" && euFindings) {
+  throw new Error("FATAL: EU findings present in HIPAA mode")
+}
+```
+
+This ensures fallback cannot happen silently.
+
+* * * * *
+
+**🧩 STEP 6 --- LOG PROOF (REMOVE LATER)**
+----------------------------------------
+
+Add logs that MUST show:
+
+```
+console.log("[STATE] regulation:", regulation)
+console.log("[STATE] hasEUFindings:", !!euFindings)
+console.log("[STATE] hasHIPAAFindings:", !!hipaaFindings)
+```
+
+Expected in HIPAA mode:
+
+```
+regulation: hipaa
+hasEUFindings: false
+hasHIPAAFindings: true
+```
+
+* * * * *
+
+**🧩 STEP 7 --- VERIFY WITH REAL INPUT**
+--------------------------------------
+
+Run HIPAA scan with:
+
+-   PHI involved = true
+
+-   Vendor BAA = false
+
+Confirm:
+
+-   HIPAA citations (45 CFR)
+
+-   BAA-related rule triggered
+
+-   NO EU language anywhere
+
+* * * * *
+
+**🚫 FORBIDDEN**
+----------------
+
+-   ❌ Do NOT blame caching
+
+-   ❌ Do NOT add more tabs
+
+-   ❌ Do NOT create new global state
+
+-   ❌ Do NOT say "it should work now"
+
+* * * * *
+
+**✅ DEFINITION OF DONE**
+------------------------
+
+HIPAA is fixed only if:
+
+-   Regulation state flips to "hipaa"
+
+-   HIPAA findings populate
+
+-   EU findings are impossible in HIPAA mode
+
+-   UI + export reflect HIPAA exclusively
+
+* * * * *
+
+**🧠 Reminder**
+---------------
+
+HIPAA must not *coexist* with EU in execution.
+
+It must **replace it** when selected.
+
+Proceed carefully and show diffs.
+
+* * * * *
