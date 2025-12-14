@@ -28,30 +28,28 @@ export function AboutSection({
   return (
     <section
       ref={ref}
-      className="flex h-screen w-screen shrink-0 snap-start flex-col justify-between px-4 py-6 md:justify-center md:px-12 md:py-0 lg:px-16"
+      className="flex h-screen w-screen shrink-0 snap-start items-center px-6 pt-12 md:px-12 md:pt-0 lg:px-16"
     >
-      <div className="mx-auto w-full max-w-7xl flex-1 md:flex-initial">
-        <div className="grid gap-4 md:grid-cols-2 md:gap-16 lg:gap-24">
+      <div className="mx-auto w-full max-w-7xl">
+        <div className="grid md:grid-cols-2 md:gap-16 lg:gap-24">
           {/* Left side - PHI Involvement */}
           <div>
             <div
-              className={`mb-4 transition-all duration-700 md:mb-12 ${
+              className={`mb-6 transition-all duration-700 md:mb-12 ${
                 isVisible ? "translate-y-0 opacity-100" : "-translate-y-12 opacity-0"
               }`}
             >
-              <h2 className="mb-2 font-sans text-3xl font-light leading-[1.1] tracking-tight text-foreground md:mb-4 md:text-6xl lg:text-7xl">
-                PHI
-                <br />
-                Involvement
+              <h2 className="mb-2 font-sans text-5xl font-light tracking-tight text-foreground md:text-6xl lg:text-7xl">
+                PHI Involvement
               </h2>
-              <p className="font-mono text-xs text-foreground/60 md:text-base">
-                / Does this AI system process Protected Health Information?
+              <p className="font-mono text-sm text-foreground/60 md:text-base">
+                / Does this AI process Protected Health Information?
               </p>
             </div>
 
             <div
               className={`max-w-md transition-all duration-700 ${
-                isVisible ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"
+                isVisible ? "translate-x-0 opacity-100" : "-translate-x-16 opacity-0"
               }`}
               style={{ transitionDelay: "200ms" }}
             >
@@ -70,18 +68,22 @@ export function AboutSection({
                   </option>
                 ))}
               </select>
+              {/* Compressed helper text - below input, smaller */}
+              <p className="mt-2 text-xs leading-snug text-foreground/50 md:mt-3 md:text-sm">
+                PHI: names, records, diagnoses, billing info that identifies individuals.
+              </p>
             </div>
 
+            {/* Next Button */}
             <div
-              className={`mt-4 transition-all duration-700 md:mt-8 ${
+              className={`mt-8 max-w-md transition-all duration-700 ${
                 isVisible ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"
               }`}
               style={{ transitionDelay: "350ms" }}
             >
-              <p className="max-w-md text-sm leading-relaxed text-foreground/70 md:text-base">
-                PHI includes any health information that can identify an individual, such as names,
-                medical records, diagnoses, treatment plans, or billing information.
-              </p>
+              <MagneticButton variant="secondary" size="lg" onClick={onNext}>
+                Next
+              </MagneticButton>
             </div>
           </div>
 
@@ -119,18 +121,6 @@ export function AboutSection({
             })}
           </div>
         </div>
-      </div>
-
-      {/* CTA anchored to bottom on mobile */}
-      <div
-        className={`mx-auto w-full max-w-7xl pt-4 transition-all duration-700 md:mt-16 md:pt-0 ${
-          isVisible ? "translate-y-0 opacity-100" : "translate-y-12 opacity-0"
-        }`}
-        style={{ transitionDelay: "750ms" }}
-      >
-        <MagneticButton size="lg" variant="secondary" onClick={onNext}>
-          Next
-        </MagneticButton>
       </div>
     </section>
   )
