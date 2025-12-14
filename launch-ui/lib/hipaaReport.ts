@@ -125,6 +125,10 @@ const COLORS = {
   low_segment: [200, 220, 200] as [number, number, number],
   needs_review_segment: [220, 210, 180] as [number, number, number],
   high_segment: [220, 190, 190] as [number, number, number],
+  // Brand colors for accent elements
+  brand_blue: [18, 117, 216] as [number, number, number],
+  brand_blue_light: [230, 240, 250] as [number, number, number],  // ~8% opacity equivalent
+  brand_orange: [225, 145, 54] as [number, number, number],
 };
 
 // =============================================================================
@@ -554,56 +558,67 @@ export async function exportHIPAAReportAsPDF(report: HIPAAComplianceReport, useC
   };
 
   // =========================================================================
-  // VISUAL HELPER: Draw Cover Page
+  // VISUAL HELPER: Section Header with Brand Underline
+  // =========================================================================
+  const drawSectionHeader = (sectionNum: string, title: string) => {
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...COLORS.primary_text);
+    doc.text(`${sectionNum}. ${title}`, marginLeft, y);
+    y += 5;
+
+    // Brand-colored underline (Primary Blue)
+    doc.setDrawColor(...COLORS.brand_blue);
+    doc.setLineWidth(0.5);
+    doc.line(marginLeft, y, marginLeft + 60, y);
+    y += 8;
+  };
+
+  // =========================================================================
+  // VISUAL HELPER: Draw Cover Page (Refined with brand accent strip)
   // =========================================================================
   const drawCoverPage = () => {
-    // Centered title block
-    y = 60;
+    // Left accent strip - subtle brand presence
+    doc.setFillColor(...COLORS.brand_blue_light);
+    doc.rect(0, 0, 4, PDF_CONFIG.pageHeight, "F");
+
+    // Centered title block with generous spacing
+    y = 70;
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(...COLORS.muted_text);
     doc.text("DETERMINISTIC, RULES-BASED ANALYSIS", PDF_CONFIG.pageWidth / 2, y, { align: "center" });
 
-    y += 8;
+    y += 12;
     doc.setFontSize(28);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(...COLORS.primary_text);
     doc.text("HIPAA AI", PDF_CONFIG.pageWidth / 2, y, { align: "center" });
 
-    y += 12;
+    y += 14;
     doc.text("RISK ASSESSMENT", PDF_CONFIG.pageWidth / 2, y, { align: "center" });
 
-    y += 8;
+    y += 10;
     doc.setFontSize(14);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(...COLORS.secondary_text);
     doc.text("Use Case Report", PDF_CONFIG.pageWidth / 2, y, { align: "center" });
 
-    // Metadata box
-    y = 110;
-    const boxX = marginLeft + 20;
-    const boxWidth = contentWidth - 40;
-    const boxHeight = 50;
+    // Metadata section - no box, just clean alignment with whitespace
+    y = 130;
+    const labelX = marginLeft + 30;
+    const valueX = marginLeft + 75;
 
-    doc.setDrawColor(...COLORS.border);
-    doc.setLineWidth(0.5);
-    doc.rect(boxX, y, boxWidth, boxHeight, "S");
-
-    y += 10;
     doc.setFontSize(9);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(...COLORS.secondary_text);
-
-    const labelX = boxX + 10;
-    const valueX = boxX + 50;
-
     doc.text("USE CASE:", labelX, y);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(...COLORS.primary_text);
-    const useCaseLines = doc.splitTextToSize(report.executive_summary.use_case_name || "Unnamed", boxWidth - 60);
+    const useCaseLines = doc.splitTextToSize(report.executive_summary.use_case_name || "Unnamed", 90);
     doc.text(useCaseLines[0], valueX, y);
 
-    y += 8;
+    y += 10;
     doc.setFont("helvetica", "bold");
     doc.setTextColor(...COLORS.secondary_text);
     doc.text("ORGANIZATION:", labelX, y);
@@ -611,7 +626,7 @@ export async function exportHIPAAReportAsPDF(report: HIPAAComplianceReport, useC
     doc.setTextColor(...COLORS.primary_text);
     doc.text(report.use_case_overview.organization_type.replace(/_/g, " ").toUpperCase(), valueX, y);
 
-    y += 8;
+    y += 10;
     doc.setFont("helvetica", "bold");
     doc.setTextColor(...COLORS.secondary_text);
     doc.text("ENVIRONMENT:", labelX, y);
@@ -619,7 +634,7 @@ export async function exportHIPAAReportAsPDF(report: HIPAAComplianceReport, useC
     doc.setTextColor(...COLORS.primary_text);
     doc.text(report.use_case_overview.environment.toUpperCase(), valueX, y);
 
-    y += 8;
+    y += 10;
     doc.setFont("helvetica", "bold");
     doc.setTextColor(...COLORS.secondary_text);
     doc.text("DATE:", labelX, y);
@@ -629,36 +644,32 @@ export async function exportHIPAAReportAsPDF(report: HIPAAComplianceReport, useC
       year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit"
     }), valueX, y);
 
-    // Tool info line
-    y = 175;
+    // Tool info line with more breathing room
+    y = 195;
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(...COLORS.muted_text);
     doc.text(`Tool Version: ${report.tool_version}`, PDF_CONFIG.pageWidth / 2 - 30, y);
 
     // Beta badge
-    doc.setFillColor(240, 240, 240);
+    doc.setFillColor(...COLORS.table_header_bg);
     doc.roundedRect(PDF_CONFIG.pageWidth / 2 + 20, y - 4, 20, 6, 1, 1, "F");
     doc.setFontSize(7);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(...COLORS.secondary_text);
     doc.text("BETA", PDF_CONFIG.pageWidth / 2 + 30, y, { align: "center" });
 
-    y += 6;
+    y += 8;
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(...COLORS.light_text);
     doc.text(`Report ID: ${report.report_id}`, PDF_CONFIG.pageWidth / 2, y, { align: "center" });
 
-    // Disclaimer box at bottom
-    y = 210;
-    const disclaimerBoxX = marginLeft + 15;
-    const disclaimerBoxWidth = contentWidth - 30;
-    const disclaimerBoxHeight = 35;
-
-    doc.setDrawColor(...COLORS.high);
+    // Disclaimer section - thin top rule instead of full box
+    y = 225;
+    doc.setDrawColor(...COLORS.border);
     doc.setLineWidth(0.3);
-    doc.rect(disclaimerBoxX, y, disclaimerBoxWidth, disclaimerBoxHeight, "S");
+    doc.line(marginLeft + 20, y, PDF_CONFIG.pageWidth - marginLeft - 20, y);
 
     y += 8;
     doc.setFontSize(9);
@@ -666,33 +677,28 @@ export async function exportHIPAAReportAsPDF(report: HIPAAComplianceReport, useC
     doc.setTextColor(...COLORS.high);
     doc.text("IMPORTANT NOTICE", PDF_CONFIG.pageWidth / 2, y, { align: "center" });
 
-    y += 7;
+    y += 8;
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(...COLORS.secondary_text);
     const disclaimerText = "This report is generated by a deterministic, rules-based system. It does not constitute legal advice, HIPAA certification, or compliance attestation. See Section 10 for complete disclaimers.";
-    const disclaimerLines = doc.splitTextToSize(disclaimerText, disclaimerBoxWidth - 10);
-    doc.text(disclaimerLines, PDF_CONFIG.pageWidth / 2, y, { align: "center", maxWidth: disclaimerBoxWidth - 10 });
+    const disclaimerLines = doc.splitTextToSize(disclaimerText, contentWidth - 40);
+    doc.text(disclaimerLines, PDF_CONFIG.pageWidth / 2, y, { align: "center", maxWidth: contentWidth - 40 });
 
-    // Page number for cover
+    // Page footer
     doc.setFontSize(8);
     doc.setTextColor(...COLORS.light_text);
     doc.text(`Page ${currentPage}`, PDF_CONFIG.pageWidth / 2, PDF_CONFIG.footerY, { align: "center" });
   };
 
   // =========================================================================
-  // VISUAL HELPER: Risk Summary Bar (with box border)
+  // VISUAL HELPER: Risk Summary Bar (clean, no outer box)
   // =========================================================================
   const drawRiskSummaryBar = (riskLevel: "HIGH" | "NEEDS_REVIEW" | "LOW") => {
     const barY = y;
     const barHeight = 8;
     const barWidth = contentWidth;
     const segmentWidth = barWidth / 3;
-
-    // Outer box border
-    doc.setDrawColor(...COLORS.border);
-    doc.setLineWidth(0.5);
-    doc.rect(marginLeft - 2, barY - 8, barWidth + 4, barHeight + 18, "S");
 
     // Draw the three segments with muted colors
     doc.setFillColor(...COLORS.low_segment);
@@ -743,21 +749,13 @@ export async function exportHIPAAReportAsPDF(report: HIPAAComplianceReport, useC
   };
 
   // =========================================================================
-  // VISUAL HELPER: Findings Breakdown (with box border)
+  // VISUAL HELPER: Findings Breakdown (clean, no outer box)
   // =========================================================================
   const drawFindingsBreakdown = (triggeredSafeguards: HIPAAComplianceReport["triggered_safeguards"]) => {
     const highCount = triggeredSafeguards.filter(s => s.risk_level === "high").length;
     const needsReviewCount = triggeredSafeguards.filter(s => s.risk_level === "needs_review").length;
     const lowCount = triggeredSafeguards.filter(s => s.risk_level === "low").length;
     const total = triggeredSafeguards.length;
-
-    const boxStartY = y;
-    const boxHeight = 32;
-
-    // Box border
-    doc.setDrawColor(...COLORS.border);
-    doc.setLineWidth(0.5);
-    doc.rect(marginLeft - 2, boxStartY, 85, boxHeight, "S");
 
     y += 4;
     doc.setFontSize(9);
@@ -1105,30 +1103,29 @@ export async function exportHIPAAReportAsPDF(report: HIPAAComplianceReport, useC
   // PAGE 2: EXECUTIVE SUMMARY
   // =========================================================================
   startNewPage();
-  addText("2. Executive Summary", 14, "bold");
-  addSpacer(2);
+  drawSectionHeader("2", "Executive Summary");
   addText(`Use Case: ${report.executive_summary.use_case_name}`, 10);
-  addSpacer(6);
+  addSpacer(8);
 
   addText("Risk Classification:", 10, "bold");
-  addSpacer(4);
+  addSpacer(6);
   drawRiskSummaryBar(report.executive_summary.risk_classification);
-  addSpacer(4);
+  addSpacer(8);
 
   const statusColor: [number, number, number] =
     report.executive_summary.status === "Non-Compliant" ? COLORS.high :
     report.executive_summary.status === "Needs Manual Review" ? COLORS.needs_review : COLORS.low;
   addText(`Status: ${report.executive_summary.status}`, 10, "bold", statusColor);
-  addSpacer(6);
+  addSpacer(8);
 
   addText("Findings Summary:", 10, "bold");
-  addSpacer(2);
-  drawFindingsBreakdown(report.triggered_safeguards);
   addSpacer(4);
+  drawFindingsBreakdown(report.triggered_safeguards);
+  addSpacer(6);
 
   addText(`Vendors Analyzed: ${report.executive_summary.vendor_count}`, 10);
   addText(`Confidence Score: ${(report.risk_classification.confidence_score * 100).toFixed(0)}%`, 10);
-  addSpacer(6);
+  addSpacer(8);
 
   if (report.risk_classification.determining_factors.length > 0) {
     addText("Key Determining Factors:", 10, "bold");
@@ -1141,15 +1138,14 @@ export async function exportHIPAAReportAsPDF(report: HIPAAComplianceReport, useC
   // PAGE 3: ASSESSMENT SCOPE
   // =========================================================================
   startNewPage();
-  addText("3. Assessment Scope & Limitations", 14, "bold");
-  addSpacer(4);
+  drawSectionHeader("3", "Assessment Scope & Limitations");
 
   addText("3.1 What This Assessment Covers", 11, "bold");
   for (const item of report.assessment_scope.what_this_covers) {
     checkPageBreak(12);
     addText(`${SYMBOLS.bullet} ${item}`, 9, "normal", COLORS.secondary_text);
   }
-  addSpacer(4);
+  addSpacer(6);
 
   checkPageBreak(40);
   addText("3.2 What This Assessment Does Not Cover", 11, "bold");
@@ -1157,7 +1153,7 @@ export async function exportHIPAAReportAsPDF(report: HIPAAComplianceReport, useC
     checkPageBreak(12);
     addText(`${SYMBOLS.bullet} ${item}`, 9, "normal", COLORS.secondary_text);
   }
-  addSpacer(4);
+  addSpacer(6);
 
   checkPageBreak(40);
   addText("3.3 When to Re-Run This Assessment", 11, "bold");
@@ -1170,8 +1166,7 @@ export async function exportHIPAAReportAsPDF(report: HIPAAComplianceReport, useC
   // PAGE 4: HOW TEAMS USE THIS REPORT
   // =========================================================================
   startNewPage();
-  addText("4. How Compliance Teams Use This Report", 14, "bold");
-  addSpacer(4);
+  drawSectionHeader("4", "How Compliance Teams Use This Report");
   for (const item of report.assessment_scope.how_teams_use_this) {
     checkPageBreak(12);
     addText(`${SYMBOLS.bullet} ${item}`, 9, "normal", COLORS.secondary_text);
@@ -1181,19 +1176,18 @@ export async function exportHIPAAReportAsPDF(report: HIPAAComplianceReport, useC
   // PAGE 5: AI USE CASE PROFILE
   // =========================================================================
   startNewPage();
-  addText("5. AI Use Case Profile", 14, "bold");
-  addSpacer(4);
+  drawSectionHeader("5", "AI Use Case Profile");
 
   // Organization & Deployment table
   addText("Organization & Deployment:", 10, "bold");
-  addSpacer(2);
+  addSpacer(4);
   addText(`  Organization Type: ${report.use_case_overview.organization_type.replace(/_/g, " ")}`, 9, "normal", COLORS.secondary_text);
   addText(`  Environment: ${report.use_case_overview.environment}`, 9, "normal", COLORS.secondary_text);
   addText(`  AI Function: ${report.use_case_overview.ai_function}`, 9, "normal", COLORS.secondary_text);
-  addSpacer(4);
+  addSpacer(6);
 
   addText("Data Flow:", 10, "bold");
-  addSpacer(2);
+  addSpacer(4);
   addText(`  Input Source: ${report.use_case_overview.input_source}`, 9, "normal", COLORS.secondary_text);
   addText(`  Output Destination: ${report.use_case_overview.output_destination}`, 9, "normal", COLORS.secondary_text);
   addText(`  PHI Involved: ${formatBoolean(report.use_case_overview.phi_involved)}`, 9, "normal", COLORS.secondary_text);
@@ -1205,21 +1199,19 @@ export async function exportHIPAAReportAsPDF(report: HIPAAComplianceReport, useC
   // PAGE 6: PHI EXPOSURE ANALYSIS
   // =========================================================================
   startNewPage();
-  addText("6. PHI Exposure Analysis", 14, "bold");
-  addSpacer(4);
+  drawSectionHeader("6", "PHI Exposure Analysis");
   drawPHIExposureTable();
 
   // =========================================================================
   // PAGE 7: VENDOR & BAA ANALYSIS
   // =========================================================================
   startNewPage();
-  addText("7. Vendor & BAA Analysis", 14, "bold");
-  addSpacer(4);
+  drawSectionHeader("7", "Vendor & BAA Analysis");
   drawVendorTable();
 
   // Vendor risk factors detail
   if (report.vendor_analysis.vendors.some(v => v.risk_factors.length > 0)) {
-    addSpacer(4);
+    addSpacer(6);
     addText("Vendor Risk Factor Details:", 10, "bold");
     for (const vendor of report.vendor_analysis.vendors.filter(v => v.risk_factors.length > 0)) {
       checkPageBreak(15);
@@ -1234,8 +1226,7 @@ export async function exportHIPAAReportAsPDF(report: HIPAAComplianceReport, useC
   // PAGE 8: TRIGGERED SAFEGUARDS
   // =========================================================================
   startNewPage();
-  addText("8. Triggered HIPAA Safeguards", 14, "bold");
-  addSpacer(4);
+  drawSectionHeader("8", "Triggered HIPAA Safeguards");
 
   if (report.triggered_safeguards.length === 0) {
     addText("No safeguard concerns identified.", 10, "normal", COLORS.secondary_text);
@@ -1246,7 +1237,7 @@ export async function exportHIPAAReportAsPDF(report: HIPAAComplianceReport, useC
     for (const category of categories) {
       checkPageBreak(30);
       addText(category, 11, "bold");
-      addSpacer(2);
+      addSpacer(4);
 
       const safeguardsInCategory = report.triggered_safeguards.filter(s => s.category === category);
       for (const safeguard of safeguardsInCategory) {
@@ -1257,9 +1248,9 @@ export async function exportHIPAAReportAsPDF(report: HIPAAComplianceReport, useC
 
         addText(`[${safeguard.risk_level.toUpperCase()}] ${safeguard.description}`, 9, "bold", riskColor);
         addText(`  ${safeguard.explanation}`, 8, "normal", COLORS.secondary_text);
-        addSpacer(2);
+        addSpacer(4);
       }
-      addSpacer(4);
+      addSpacer(6);
     }
   }
 
@@ -1267,16 +1258,14 @@ export async function exportHIPAAReportAsPDF(report: HIPAAComplianceReport, useC
   // PAGE 9: REMEDIATION CHECKLIST
   // =========================================================================
   startNewPage();
-  addText("9. Remediation Checklist", 14, "bold");
-  addSpacer(4);
+  drawSectionHeader("9", "Remediation Checklist");
   drawRemediationTable();
 
   // =========================================================================
   // PAGE 10: LEGAL REFERENCES & DISCLAIMERS
   // =========================================================================
   startNewPage();
-  addText("10. Legal References", 14, "bold");
-  addSpacer(4);
+  drawSectionHeader("10", "Legal References");
 
   for (const ref of report.legal_references.slice(0, 15)) {
     checkPageBreak(12);
