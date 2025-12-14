@@ -140,9 +140,9 @@ export function ContactSection({
   return (
     <section
       ref={ref}
-      className="flex h-screen w-screen shrink-0 snap-start flex-col justify-between px-4 py-3 md:justify-center md:px-12 md:py-0 lg:px-16"
+      className="flex h-screen w-screen shrink-0 snap-start flex-col justify-center px-4 py-6 md:px-12 md:py-0 lg:px-16"
     >
-      <div className="mx-auto w-full max-w-7xl flex-1 md:flex-initial">
+      <div className="mx-auto w-full max-w-7xl">
         <div className="grid gap-2 md:grid-cols-[1.2fr_1fr] md:gap-16 lg:gap-24">
           {/* Left side - Header and text inputs */}
           <div className="flex flex-col">
@@ -351,26 +351,26 @@ export function ContactSection({
             </div>
           </div>
         </div>
-      </div>
 
-      {/* CTA anchored to bottom - tighter padding */}
-      <div
-        className={`mx-auto w-full max-w-7xl border-t border-foreground/10 pt-2 transition-all duration-700 md:mt-16 md:border-0 md:pt-6 ${
-          isVisible ? "translate-y-0 opacity-100" : "translate-y-12 opacity-0"
-        }`}
-        style={{ transitionDelay: "500ms" }}
-      >
-        <MagneticButton
-          variant="primary"
-          size="lg"
-          className={`w-full md:w-auto ${isReviewReady ? "opacity-60 cursor-not-allowed" : ""}`}
-          onClick={isReviewReady ? undefined : onReviewClick}
+        {/* CTA - inline with content */}
+        <div
+          className={`mt-4 transition-all duration-700 md:mt-16 ${
+            isVisible ? "translate-y-0 opacity-100" : "translate-y-12 opacity-0"
+          }`}
+          style={{ transitionDelay: "500ms" }}
         >
-          {isReviewReady ? "Assessment Submitted" : "Review Assessment"}
-        </MagneticButton>
-        <p className="mt-0.5 text-center font-mono text-[9px] text-foreground/50 md:mt-3 md:text-left md:text-xs">
-          {isReviewReady ? "Scroll right to view summary" : "Local state only — no data sent"}
-        </p>
+          <MagneticButton
+            variant="primary"
+            size="lg"
+            className={`w-full md:w-auto ${isReviewReady ? "opacity-60 cursor-not-allowed" : ""}`}
+            onClick={isReviewReady ? undefined : onReviewClick}
+          >
+            {isReviewReady ? "Assessment Submitted" : "Review Assessment"}
+          </MagneticButton>
+          <p className="mt-1 text-center font-mono text-[9px] text-foreground/50 md:mt-3 md:text-left md:text-xs">
+            {isReviewReady ? "Scroll right to view summary" : "Local state only — no data sent"}
+          </p>
+        </div>
       </div>
     </section>
   )
