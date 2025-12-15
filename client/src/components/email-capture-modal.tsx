@@ -64,19 +64,20 @@ export default function EmailCaptureModal({
   });
 
   const handleSubmit = async (data: EmailCaptureFormData) => {
-    console.log("🚨 Modal handleSubmit called, email:", data.email);
+    console.log("🔥 EMAIL MODAL SUBMITTED");
+    alert("EMAIL MODAL SUBMIT FIRED - email: " + data.email);
     setModalState("submitting");
     setSubmittedEmail(data.email);
     setErrorMessage("");
 
     try {
-      console.log("🚨 Calling onSubmit prop...");
+      console.log("🔥 Calling onSubmit prop (handleEmailSubmit)...");
       await onSubmit(data.email, data.companyName || undefined);
-      console.log("🚨 onSubmit completed successfully");
+      console.log("🔥 onSubmit completed successfully");
       setModalState("success");
       setRetryCount(0);
     } catch (error) {
-      console.log("🚨 onSubmit threw error:", error);
+      console.log("🔥 onSubmit threw error:", error);
       const newRetryCount = retryCount + 1;
       setRetryCount(newRetryCount);
 

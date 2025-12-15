@@ -94,17 +94,19 @@ export default function HIPAAAuditTimeline({ profile, vendors, findings, auditPh
   const [exportFormat, setExportFormat] = useState<ExportFormat>("pdf");
 
   const handleExportClick = (format: ExportFormat) => {
-    console.log("🚨 PDF export handler fired, format:", format);
+    console.log("🔥 PDF DOWNLOAD BUTTON CLICKED");
+    alert("PDF DOWNLOAD BUTTON CLICKED - format: " + format);
     setExportFormat(format);
     setEmailModalOpen(true);
   };
 
   const handleEmailSubmit = async (email: string, companyName?: string) => {
-    console.log("🚨 Email modal submitted, email:", email);
+    console.log("🔥 HIPAA TIMELINE: handleEmailSubmit CALLED");
+    console.log("🔥 Email:", email, "Company:", companyName);
 
     // Generate the report
     const report = generateHIPAAComplianceReport(profile, vendors, findings);
-    console.log("🚨 Report generated, ID:", report.report_id);
+    console.log("🔥 Report generated, ID:", report.report_id);
 
     // Generate the file as base64
     let attachment: { base64: string; filename: string; mimeType: string };
@@ -113,7 +115,7 @@ export default function HIPAAAuditTimeline({ profile, vendors, findings, auditPh
     } else {
       attachment = generateHIPAAReportJSONBase64(report);
     }
-    console.log("🚨 Attachment generated, filename:", attachment.filename);
+    console.log("🔥 Attachment generated, filename:", attachment.filename);
 
     // Build and send the webhook payload
     const payload = buildWebhookPayload(
@@ -123,10 +125,10 @@ export default function HIPAAAuditTimeline({ profile, vendors, findings, auditPh
       exportFormat,
       attachment
     );
-    console.log("🚨 Payload built, sending to webhook...");
+    console.log("🔥 Payload built, calling sendHIPAAReportToWebhook...");
 
     await sendHIPAAReportToWebhook(payload);
-    console.log("🚨 Webhook call completed successfully");
+    console.log("🔥 Webhook call completed successfully");
   };
 
   const getRiskBadgeVariant = (risk: string): "default" | "secondary" | "destructive" | "outline" => {
