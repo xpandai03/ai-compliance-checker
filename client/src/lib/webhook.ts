@@ -126,10 +126,18 @@ export async function sendHIPAAReportToWebhook(
   payload: HIPAAWebhookPayload,
   maxRetries: number = 2
 ): Promise<void> {
+  // TEMPORARY INSTRUMENTATION - REMOVE AFTER DEBUG
+  console.log("🚨 WEBHOOK FUNCTION ENTERED");
+  console.log("🚨 Webhook URL:", N8N_WEBHOOK_URL);
+  console.log("🚨 Payload email:", payload.email);
+  console.log("🚨 Payload format:", payload.format);
+  alert("WEBHOOK FUNCTION CALLED - URL: " + N8N_WEBHOOK_URL);
+
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
+      console.log("🚨 Attempt", attempt + 1, "of", maxRetries + 1);
       const response = await fetch(N8N_WEBHOOK_URL, {
         method: "POST",
         headers: {
@@ -138,17 +146,22 @@ export async function sendHIPAAReportToWebhook(
         body: JSON.stringify(payload),
       });
 
+      console.log("🚨 Webhook response status:", response.status);
+
       if (!response.ok) {
         const errorText = await response.text().catch(() => "Unknown error");
+        console.log("🚨 Webhook error:", errorText);
         throw new Error(
           `Webhook returned ${response.status}: ${errorText}`
         );
       }
 
       // Success - return without error
+      console.log("🚨 Webhook SUCCESS!");
       return;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
+      console.log("🚨 Webhook attempt failed:", lastError.message);
 
       // If this was the last attempt, throw
       if (attempt === maxRetries) {
