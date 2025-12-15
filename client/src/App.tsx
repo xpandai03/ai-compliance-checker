@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import HomePage from "@/pages/home";
+import AssessmentPage from "@/pages/assessment";
 import NotFound from "@/pages/not-found";
 
 function App() {
@@ -12,7 +13,8 @@ function App() {
       <TooltipProvider>
         <Toaster />
         <Switch>
-          <Route path="/" component={HomePage} />
+          <Route path="/" component={AssessmentPage} />
+          <Route path="/classic" component={HomePage} />
           <Route component={NotFound} />
         </Switch>
       </TooltipProvider>
