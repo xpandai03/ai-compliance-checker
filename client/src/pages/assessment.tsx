@@ -1,4 +1,5 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
+import { Shader, ChromaFlow, Swirl } from "shaders/react";
 import { WorkSection } from "@/launch-ui/components/sections/work-section";
 import { ServicesSection } from "@/launch-ui/components/sections/services-section";
 import { AiFunctionSection } from "@/launch-ui/components/sections/ai-function-section";
@@ -7,6 +8,8 @@ import { ContactSection, type VendorDraft, createEmptyVendor } from "@/launch-ui
 import { ReviewSection } from "@/launch-ui/components/sections/review-section";
 import { ResultsSection, type ExportFormat } from "@/launch-ui/components/sections/results-section";
 import { MagneticButton } from "@/launch-ui/components/magnetic-button";
+import { CustomCursor } from "@/launch-ui/components/custom-cursor";
+import { GrainOverlay } from "@/launch-ui/components/grain-overlay";
 import { mapDraftToHIPAAProfile, createVendorMetadata } from "@/launch-ui/lib/mapDraftToProfile";
 import { auditHIPAA } from "@/lib/hipaaAudit";
 import type { HIPAAFindings, HIPAAUseCaseProfile, VendorPHIMetadata } from "@/lib/types";
@@ -47,7 +50,9 @@ const initialDraft: AssessmentDraft = {
 
 export default function AssessmentPage() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const shaderContainerRef = useRef<HTMLDivElement>(null);
   const [currentSection, setCurrentSection] = useState(0);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   // Local state for assessment draft
   const [draft, setDraft] = useState<AssessmentDraft>(initialDraft);
@@ -63,6 +68,37 @@ export default function AssessmentPage() {
   // Email modal state
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [exportFormat, setExportFormat] = useState<ExportFormat>("pdf");
+
+  // Shader loading detection
+  useEffect(() => {
+    const checkShaderReady = () => {
+      if (shaderContainerRef.current) {
+        const canvas = shaderContainerRef.current.querySelector("canvas");
+        if (canvas && canvas.width > 0 && canvas.height > 0) {
+          setIsLoaded(true);
+          return true;
+        }
+      }
+      return false;
+    };
+
+    if (checkShaderReady()) return;
+
+    const intervalId = setInterval(() => {
+      if (checkShaderReady()) {
+        clearInterval(intervalId);
+      }
+    }, 100);
+
+    const fallbackTimer = setTimeout(() => {
+      setIsLoaded(true);
+    }, 1500);
+
+    return () => {
+      clearInterval(intervalId);
+      clearTimeout(fallbackTimer);
+    };
+  }, []);
 
   // Execute kernel and navigate to review
   const handleReviewClick = () => {
@@ -129,12 +165,55 @@ export default function AssessmentPage() {
 
   return (
     <main className="relative h-screen w-full overflow-hidden bg-background">
-      {/* Background gradient */}
-      <div className="fixed inset-0 z-0 bg-gradient-to-br from-blue-900/20 via-background to-orange-900/20" />
+      {/* Custom cursor (desktop only) */}
+      <CustomCursor />
+
+      {/* Grain overlay - above shader, below content */}
+      <GrainOverlay />
+
+      {/* Animated shader background */}
+      <div
+        ref={shaderContainerRef}
+        className={`fixed inset-0 z-0 transition-opacity duration-700 ${isLoaded ? "opacity-100" : "opacity-0"}`}
+        style={{ contain: "strict" }}
+      >
+        <Shader className="h-full w-full">
+          <Swirl
+            colorA="#1275d8"
+            colorB="#e19136"
+            speed={0.8}
+            detail={0.8}
+            blend={50}
+            coarseX={40}
+            coarseY={40}
+            mediumX={40}
+            mediumY={40}
+            fineX={40}
+            fineY={40}
+          />
+          <ChromaFlow
+            baseColor="#0066ff"
+            upColor="#0066ff"
+            downColor="#d1d1d1"
+            leftColor="#e19136"
+            rightColor="#e19136"
+            intensity={0.9}
+            radius={1.8}
+            momentum={25}
+            maskType="alpha"
+            opacity={0.97}
+          />
+        </Shader>
+        {/* Dark overlay for better text readability */}
+        <div className="absolute inset-0 bg-black/20" />
+      </div>
 
       <div
         ref={scrollContainerRef}
-        className="relative z-10 flex h-screen overflow-x-auto overflow-y-hidden"
+        data-scroll-container
+        className={`relative z-10 flex h-screen overflow-x-auto overflow-y-hidden transition-opacity duration-700 ${
+          isLoaded ? "opacity-100" : "opacity-0"
+        }`}
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
         {/* Hero Section */}
