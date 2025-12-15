@@ -184,24 +184,29 @@ export default function AuditTimeline({ modelProfile, findings, auditPhase, prov
           </div>
         </div>
         {auditPhase === "done" && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2 shrink-0" data-testid="button-download-report">
-                <Download className="w-4 h-4" />
-                Download Report
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => handleExportClick("pdf")} data-testid="menu-download-pdf">
-                <FileText className="w-4 h-4 mr-2" />
-                Download as PDF
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExportClick("json")} data-testid="menu-download-json">
-                <FileText className="w-4 h-4 mr-2" />
-                Download as JSON
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex items-center gap-2">
+            <div className="px-2 py-1 bg-yellow-400 text-black text-xs font-bold rounded">
+              DEBUG: EU AI ACT EMAIL GATE ACTIVE
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2 shrink-0" data-testid="button-download-report">
+                  <Download className="w-4 h-4" />
+                  EMAIL REQUIRED
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleExportClick("pdf")} data-testid="menu-download-pdf">
+                  <FileText className="w-4 h-4 mr-2" />
+                  Download as PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExportClick("json")} data-testid="menu-download-json">
+                  <FileText className="w-4 h-4 mr-2" />
+                  Download as JSON
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         )}
       </div>
 
