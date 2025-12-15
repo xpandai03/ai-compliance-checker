@@ -270,3 +270,145 @@ export async function exportReportAsPDF(report: ComplianceReport, modelName: str
 
   doc.save(filename);
 }
+
+/**
+ * Generates the EU AI Act report as a base64-encoded PDF for webhook delivery.
+ * Does NOT save locally - returns data for transmission.
+ */
+export async function generateReportPDFBase64(report: ComplianceReport): Promise<{
+  base64: string;
+  filename: string;
+  mimeType: string;
+}> {
+  const { jsPDF } = await import("jspdf");
+
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+  const sanitizedModel = report.model_profile.model_name.replace(/[^a-zA-Z0-9-_]/g, "_");
+  const filename = `ai-risk-assessment_${sanitizedModel}_${timestamp}.pdf`;
+
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const marginLeft = 20;
+  const marginRight = 20;
+  const contentWidth = pageWidth - marginLeft - marginRight;
+  let y = 20;
+
+  const addText = (text: string, fontSize: number, fontStyle: "normal" | "bold" = "normal", color: [number, number, number] = [0, 0, 0]) => {
+    doc.setFontSize(fontSize);
+    doc.setFont("helvetica", fontStyle);
+    doc.setTextColor(color[0], color[1], color[2]);
+    const lines = doc.splitTextToSize(text, contentWidth);
+    doc.text(lines, marginLeft, y);
+    y += lines.length * (fontSize * 0.4) + 2;
+  };
+
+  const addSpacer = (height: number) => {
+    y += height;
+  };
+
+  const checkPageBreak = (requiredSpace: number) => {
+    if (y + requiredSpace > 270) {
+      doc.addPage();
+      y = 20;
+    }
+  };
+
+  addText("AI Risk Assessment Report", 18, "bold");
+  addText("Deterministic, EU AI Act-grounded", 11, "normal", [100, 100, 100]);
+  addSpacer(8);
+
+  addText("Report Metadata", 14, "bold");
+  addText(`Report ID: ${report.report_id}`, 10);
+  addText(`Generated: ${new Date(report.generated_at).toLocaleString()}`, 10);
+  addText(`Tool Version: ${report.tool_version}`, 10);
+  addSpacer(6);
+
+  checkPageBreak(40);
+  addText("Model Profile", 14, "bold");
+  addText(`Model: ${report.model_profile.model_name}`, 10);
+  addText(`Provider: ${report.model_profile.provider}`, 10);
+  addText(`Use Case: ${report.model_profile.use_case}`, 10);
+  addText(`User Type: ${report.model_profile.user_type}`, 10);
+  addSpacer(6);
+
+  if (report.provider_metadata) {
+    checkPageBreak(60);
+    addText("Provider Metadata", 14, "bold");
+    addText(`Overall Confidence: ${(report.provider_metadata.overall_confidence * 100).toFixed(0)}%`, 10);
+    addSpacer(2);
+
+    const fields = report.provider_metadata.fields;
+    for (const [key, field] of Object.entries(fields)) {
+      const displayValue = Array.isArray(field.value) ? field.value.join(", ") : String(field.value ?? "N/A");
+      const displayKey = key.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase());
+      addText(`${displayKey}: ${displayValue} (${field.source}, ${(field.confidence * 100).toFixed(0)}%)`, 9, "normal", [60, 60, 60]);
+      checkPageBreak(10);
+    }
+    addSpacer(6);
+  }
+
+  checkPageBreak(50);
+  addText("Risk Assessment", 14, "bold");
+  addText(`Classification: ${report.risk_assessment.classification}`, 11, "bold");
+  addText(`Confidence Score: ${(report.risk_assessment.confidence_score * 100).toFixed(0)}%`, 10);
+  addSpacer(3);
+
+  if (report.risk_assessment.triggered_rules.length > 0) {
+    addText("Triggered Rules:", 10, "bold");
+    for (const rule of report.risk_assessment.triggered_rules) {
+      checkPageBreak(15);
+      addText(`${rule.rule_id} [${rule.risk_level.toUpperCase()}] ${rule.description}`, 9, "normal", [60, 60, 60]);
+    }
+  }
+  addSpacer(6);
+
+  checkPageBreak(50);
+  addText("Regulatory Grounding", 14, "bold");
+  addText(`Regulation: ${report.regulatory_grounding.regulation}`, 10);
+  addSpacer(3);
+
+  for (const ref of report.regulatory_grounding.references) {
+    checkPageBreak(20);
+    addText(`${ref.ref} - ${ref.title}`, 10, "bold");
+    addText(`Applied because: ${ref.applied_because}`, 9, "normal", [60, 60, 60]);
+  }
+  addSpacer(8);
+
+  checkPageBreak(50);
+  addText("Disclaimers", 14, "bold");
+  for (const disclaimer of report.disclaimers) {
+    checkPageBreak(10);
+    addText(`• ${disclaimer}`, 9, "normal", [80, 80, 80]);
+  }
+
+  // Get the PDF as base64 string (without "data:" prefix)
+  const base64String = doc.output("datauristring").split(",")[1];
+
+  return {
+    base64: base64String,
+    filename,
+    mimeType: "application/pdf",
+  };
+}
+
+/**
+ * Generates the EU AI Act report as a base64-encoded JSON for webhook delivery.
+ */
+export function generateReportJSONBase64(report: ComplianceReport): {
+  base64: string;
+  filename: string;
+  mimeType: string;
+} {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+  const sanitizedModel = report.model_profile.model_name.replace(/[^a-zA-Z0-9-_]/g, "_");
+  const filename = `ai-risk-assessment_${sanitizedModel}_${timestamp}.json`;
+
+  const jsonString = JSON.stringify(report, null, 2);
+  const base64String = btoa(unescape(encodeURIComponent(jsonString)));
+
+  return {
+    base64: base64String,
+    filename,
+    mimeType: "application/json",
+  };
+}

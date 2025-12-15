@@ -11,10 +11,16 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import AuditStepCard from "./audit-step-card";
 import LegalTextViewer from "./legal-text-viewer";
+import EmailCaptureModal, { type ExportFormat } from "./email-capture-modal";
 import type { ModelProfile, ComplianceFindings, ProviderMetadata, AppliedArticle } from "@/lib/types";
 import type { AuditPhase } from "@/pages/home";
 import { formatConfidence, getSourceLabel } from "@/lib/providerMetadata";
-import { generateComplianceReport, exportReportAsJSON, exportReportAsPDF } from "@/lib/report";
+import {
+  generateComplianceReport,
+  generateReportPDFBase64,
+  generateReportJSONBase64,
+} from "@/lib/report";
+import { buildEUAIActWebhookPayload, sendEUAIActReportToWebhook } from "@/lib/webhook";
 
 interface AuditTimelineProps {
   modelProfile: ModelProfile;
@@ -111,20 +117,41 @@ function ArticleLegalBasis({ appliedArticle, triggeredRules, onViewText }: Artic
 export default function AuditTimeline({ modelProfile, findings, auditPhase, providerMetadata }: AuditTimelineProps) {
   const [selectedTextRef, setSelectedTextRef] = useState<string | null>(null);
   const [textViewerOpen, setTextViewerOpen] = useState(false);
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [exportFormat, setExportFormat] = useState<ExportFormat>("pdf");
 
   const handleViewText = (refId: string) => {
     setSelectedTextRef(refId);
     setTextViewerOpen(true);
   };
 
-  const handleExportJSON = () => {
-    const report = generateComplianceReport(modelProfile, findings, providerMetadata);
-    exportReportAsJSON(report, modelProfile.modelName);
+  const handleExportClick = (format: ExportFormat) => {
+    setExportFormat(format);
+    setEmailModalOpen(true);
   };
 
-  const handleExportPDF = async () => {
+  const handleEmailSubmit = async (email: string, companyName?: string) => {
+    // Generate the report
     const report = generateComplianceReport(modelProfile, findings, providerMetadata);
-    await exportReportAsPDF(report, modelProfile.modelName);
+
+    // Generate the file as base64
+    let attachment: { base64: string; filename: string; mimeType: string };
+    if (exportFormat === "pdf") {
+      attachment = await generateReportPDFBase64(report);
+    } else {
+      attachment = generateReportJSONBase64(report);
+    }
+
+    // Build and send the webhook payload
+    const payload = buildEUAIActWebhookPayload(
+      report,
+      email,
+      companyName,
+      exportFormat,
+      attachment
+    );
+
+    await sendEUAIActReportToWebhook(payload);
   };
 
   const getRiskBadgeVariant = (risk: string): "default" | "secondary" | "destructive" | "outline" => {
@@ -165,11 +192,11 @@ export default function AuditTimeline({ modelProfile, findings, auditPhase, prov
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleExportPDF} data-testid="menu-download-pdf">
+              <DropdownMenuItem onClick={() => handleExportClick("pdf")} data-testid="menu-download-pdf">
                 <FileText className="w-4 h-4 mr-2" />
                 Download as PDF
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleExportJSON} data-testid="menu-download-json">
+              <DropdownMenuItem onClick={() => handleExportClick("json")} data-testid="menu-download-json">
                 <FileText className="w-4 h-4 mr-2" />
                 Download as JSON
               </DropdownMenuItem>
@@ -411,6 +438,13 @@ export default function AuditTimeline({ modelProfile, findings, auditPhase, prov
         refId={selectedTextRef}
         open={textViewerOpen}
         onOpenChange={setTextViewerOpen}
+      />
+
+      <EmailCaptureModal
+        open={emailModalOpen}
+        onOpenChange={setEmailModalOpen}
+        format={exportFormat}
+        onSubmit={handleEmailSubmit}
       />
     </div>
   );
