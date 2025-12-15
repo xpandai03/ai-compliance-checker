@@ -6,21 +6,17 @@ import { Mail, CheckCircle2, AlertTriangle, Loader2, Lock } from "lucide-react";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
+  DialogPortal,
+  DialogOverlay,
 } from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+import { MagneticButton } from "@/launch-ui/components/magnetic-button";
 
 const emailCaptureSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -107,187 +103,230 @@ export default function EmailCaptureModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
-        {modalState === "form" && (
-          <>
-            <DialogHeader>
-              <div className="flex items-center gap-2">
-                <Mail className="w-5 h-5 text-primary" />
-                <DialogTitle>Get Your HIPAA Compliance Report</DialogTitle>
-              </div>
-              <DialogDescription>
-                Your assessment is complete. Enter your email to receive the full{" "}
-                {formatLabel} report with detailed remediation guidance.
-              </DialogDescription>
-            </DialogHeader>
+      <DialogPortal>
+        <DialogOverlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+        <DialogContent className="fixed left-[50%] top-[50%] z-50 w-full max-w-md translate-x-[-50%] translate-y-[-50%] border border-white/20 bg-white/10 p-6 backdrop-blur-xl shadow-2xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:rounded-xl">
+          {/* Close button */}
+          <button
+            onClick={handleClose}
+            className="absolute right-4 top-4 rounded-sm text-white/60 transition-colors hover:text-white focus:outline-none"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+            <span className="sr-only">Close</span>
+          </button>
 
-            <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(handleSubmit)}
-                className="space-y-4"
-              >
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email Address *</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="email"
-                          placeholder="your.email@company.com"
-                          className="h-11"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="companyName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Company Name (optional)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="text"
-                          placeholder="Your Organization"
-                          className="h-11"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="disclaimer"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 bg-muted/30">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel className="text-sm font-normal cursor-pointer">
-                          I understand this report is for informational purposes
-                          and does not constitute legal advice
-                        </FormLabel>
-                        <FormMessage />
-                      </div>
-                    </FormItem>
-                  )}
-                />
-
-                <Button type="submit" className="w-full gap-2" size="lg">
-                  <Mail className="w-4 h-4" />
-                  Send Report to My Email
-                </Button>
-
-                <div className="flex items-start gap-2 text-xs text-muted-foreground">
-                  <Lock className="w-3 h-3 mt-0.5 shrink-0" />
-                  <p>
-                    We respect your privacy. No spam, ever. Your data is
-                    processed securely and never shared.
-                  </p>
+          {modalState === "form" && (
+            <div className="space-y-6">
+              {/* Header */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Mail className="h-5 w-5 text-white" />
+                  <h2 className="text-lg font-semibold text-white">
+                    Get Your HIPAA Compliance Report
+                  </h2>
                 </div>
-              </form>
-            </Form>
-          </>
-        )}
-
-        {modalState === "submitting" && (
-          <div className="py-8 flex flex-col items-center justify-center space-y-4">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">
-              Preparing and sending your report...
-            </p>
-          </div>
-        )}
-
-        {modalState === "success" && (
-          <>
-            <DialogHeader>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-green-600" />
-                <DialogTitle>Report Sent Successfully</DialogTitle>
-              </div>
-            </DialogHeader>
-
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Check your inbox at <span className="font-medium text-foreground">{submittedEmail}</span>
-              </p>
-
-              <div className="rounded-md border bg-muted/30 p-4 space-y-2">
-                <p className="text-sm font-medium">The {formatLabel} report includes:</p>
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>- Full risk assessment breakdown</li>
-                  <li>- Detailed remediation checklist</li>
-                  <li>- HIPAA citation references</li>
-                </ul>
+                <p className="text-sm text-white/60">
+                  Your assessment is complete. Enter your email to receive the full{" "}
+                  {formatLabel} report with detailed remediation guidance.
+                </p>
               </div>
 
-              <p className="text-xs text-muted-foreground">
-                Didn't receive it? Check your spam folder or contact{" "}
-                <span className="text-foreground">support@agentglu.com</span>
-              </p>
+              <Form {...form}>
+                <form
+                  onSubmit={form.handleSubmit(handleSubmit)}
+                  className="space-y-5"
+                >
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <label className="mb-1 block font-mono text-xs text-white/60">
+                          Email Address *
+                        </label>
+                        <FormControl>
+                          <input
+                            type="email"
+                            placeholder="your.email@company.com"
+                            className="w-full border-b border-white/30 bg-transparent py-2 text-sm text-white placeholder:text-white/40 focus:border-white/60 focus:outline-none"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage className="text-red-400 text-xs mt-1" />
+                      </FormItem>
+                    )}
+                  />
 
-              <Button onClick={handleClose} className="w-full" variant="outline">
-                Done
-              </Button>
+                  <FormField
+                    control={form.control}
+                    name="companyName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <label className="mb-1 block font-mono text-xs text-white/60">
+                          Company Name (optional)
+                        </label>
+                        <FormControl>
+                          <input
+                            type="text"
+                            placeholder="Your Organization"
+                            className="w-full border-b border-white/30 bg-transparent py-2 text-sm text-white placeholder:text-white/40 focus:border-white/60 focus:outline-none"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage className="text-red-400 text-xs mt-1" />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="disclaimer"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-start gap-3 rounded-lg border border-white/20 bg-white/5 p-4">
+                          <FormControl>
+                            <input
+                              type="checkbox"
+                              checked={field.value}
+                              onChange={field.onChange}
+                              className="mt-0.5 h-4 w-4 rounded border-white/30 bg-transparent accent-white"
+                            />
+                          </FormControl>
+                          <label className="text-sm text-white/70 cursor-pointer leading-relaxed">
+                            I understand this report is for informational purposes
+                            and does not constitute legal advice
+                          </label>
+                        </div>
+                        <FormMessage className="text-red-400 text-xs mt-1" />
+                      </FormItem>
+                    )}
+                  />
+
+                  <MagneticButton
+                    variant="primary"
+                    size="lg"
+                    className="w-full"
+                    onClick={form.handleSubmit(handleSubmit)}
+                  >
+                    <Mail className="mr-2 h-4 w-4" />
+                    Send Report to My Email
+                  </MagneticButton>
+
+                  <div className="flex items-start gap-2 text-xs text-white/50">
+                    <Lock className="mt-0.5 h-3 w-3 shrink-0" />
+                    <p>
+                      We respect your privacy. No spam, ever. Your data is
+                      processed securely and never shared.
+                    </p>
+                  </div>
+                </form>
+              </Form>
             </div>
-          </>
-        )}
+          )}
 
-        {modalState === "error" && (
-          <>
-            <DialogHeader>
+          {modalState === "submitting" && (
+            <div className="flex flex-col items-center justify-center space-y-4 py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-white" />
+              <p className="text-sm text-white/60">
+                Preparing and sending your report...
+              </p>
+            </div>
+          )}
+
+          {modalState === "success" && (
+            <div className="space-y-6">
+              {/* Header */}
               <div className="flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5 text-amber-500" />
-                <DialogTitle>Delivery Issue</DialogTitle>
+                <CheckCircle2 className="h-5 w-5 text-green-400" />
+                <h2 className="text-lg font-semibold text-white">
+                  Report Sent Successfully
+                </h2>
               </div>
-            </DialogHeader>
 
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">{errorMessage}</p>
+              <div className="space-y-4">
+                <p className="text-sm text-white/70">
+                  Check your inbox at{" "}
+                  <span className="font-medium text-white">{submittedEmail}</span>
+                </p>
 
-              {retryCount < 3 && (
-                <Button onClick={handleRetry} className="w-full">
-                  Try Again
-                </Button>
-              )}
+                <div className="space-y-2 rounded-lg border border-white/20 bg-white/5 p-4">
+                  <p className="text-sm font-medium text-white">
+                    The {formatLabel} report includes:
+                  </p>
+                  <ul className="space-y-1 text-sm text-white/60">
+                    <li>• Full risk assessment breakdown</li>
+                    <li>• Detailed remediation checklist</li>
+                    <li>• HIPAA citation references</li>
+                  </ul>
+                </div>
 
-              {retryCount >= 3 && (
-                <div className="text-sm text-muted-foreground">
-                  <p>
+                <p className="text-xs text-white/50">
+                  Didn't receive it? Check your spam folder or contact{" "}
+                  <span className="text-white/70">support@agentglu.com</span>
+                </p>
+
+                <MagneticButton
+                  variant="secondary"
+                  size="lg"
+                  className="w-full"
+                  onClick={handleClose}
+                >
+                  Done
+                </MagneticButton>
+              </div>
+            </div>
+          )}
+
+          {modalState === "error" && (
+            <div className="space-y-6">
+              {/* Header */}
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-amber-400" />
+                <h2 className="text-lg font-semibold text-white">
+                  Delivery Issue
+                </h2>
+              </div>
+
+              <div className="space-y-4">
+                <p className="text-sm text-white/70">{errorMessage}</p>
+
+                {retryCount < 3 && (
+                  <MagneticButton
+                    variant="primary"
+                    size="lg"
+                    className="w-full"
+                    onClick={handleRetry}
+                  >
+                    Try Again
+                  </MagneticButton>
+                )}
+
+                {retryCount >= 3 && (
+                  <p className="text-sm text-white/60">
                     Please contact{" "}
-                    <span className="text-foreground font-medium">
+                    <span className="font-medium text-white">
                       support@agentglu.com
                     </span>{" "}
                     for assistance.
                   </p>
-                </div>
-              )}
+                )}
 
-              <Button
-                onClick={handleClose}
-                variant="outline"
-                className="w-full"
-              >
-                Close
-              </Button>
+                <MagneticButton
+                  variant="secondary"
+                  size="lg"
+                  className="w-full"
+                  onClick={handleClose}
+                >
+                  Close
+                </MagneticButton>
+              </div>
             </div>
-          </>
-        )}
-      </DialogContent>
+          )}
+        </DialogContent>
+      </DialogPortal>
     </Dialog>
   );
 }
