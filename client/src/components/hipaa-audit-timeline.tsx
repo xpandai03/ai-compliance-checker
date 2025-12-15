@@ -10,9 +10,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import AuditStepCard from "./audit-step-card";
+import EmailCaptureModal, { type ExportFormat } from "./email-capture-modal";
 import type { HIPAAUseCaseProfile, VendorPHIMetadata, HIPAAFindings } from "@/lib/types";
 import type { AuditPhase } from "@/pages/home";
-import { generateHIPAAComplianceReport, exportHIPAAReportAsJSON, exportHIPAAReportAsPDF } from "@/lib/hipaaReport";
+import {
+  generateHIPAAComplianceReport,
+  generateHIPAAReportPDFBase64,
+  generateHIPAAReportJSONBase64,
+} from "@/lib/hipaaReport";
+import { buildWebhookPayload, sendHIPAAReportToWebhook } from "@/lib/webhook";
 
 interface HIPAAAuditTimelineProps {
   profile: HIPAAUseCaseProfile;
@@ -84,14 +90,36 @@ function VendorAnalysisCard({ vendor }: VendorAnalysisCardProps) {
 }
 
 export default function HIPAAAuditTimeline({ profile, vendors, findings, auditPhase }: HIPAAAuditTimelineProps) {
-  const handleExportJSON = () => {
-    const report = generateHIPAAComplianceReport(profile, vendors, findings);
-    exportHIPAAReportAsJSON(report, profile.use_case_name);
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [exportFormat, setExportFormat] = useState<ExportFormat>("pdf");
+
+  const handleExportClick = (format: ExportFormat) => {
+    setExportFormat(format);
+    setEmailModalOpen(true);
   };
 
-  const handleExportPDF = async () => {
+  const handleEmailSubmit = async (email: string, companyName?: string) => {
+    // Generate the report
     const report = generateHIPAAComplianceReport(profile, vendors, findings);
-    await exportHIPAAReportAsPDF(report, profile.use_case_name);
+
+    // Generate the file as base64
+    let attachment: { base64: string; filename: string; mimeType: string };
+    if (exportFormat === "pdf") {
+      attachment = await generateHIPAAReportPDFBase64(report);
+    } else {
+      attachment = generateHIPAAReportJSONBase64(report);
+    }
+
+    // Build and send the webhook payload
+    const payload = buildWebhookPayload(
+      report,
+      email,
+      companyName,
+      exportFormat,
+      attachment
+    );
+
+    await sendHIPAAReportToWebhook(payload);
   };
 
   const getRiskBadgeVariant = (risk: string): "default" | "secondary" | "destructive" | "outline" => {
@@ -134,11 +162,11 @@ export default function HIPAAAuditTimeline({ profile, vendors, findings, auditPh
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleExportPDF} data-testid="menu-download-hipaa-pdf">
+              <DropdownMenuItem onClick={() => handleExportClick("pdf")} data-testid="menu-download-hipaa-pdf">
                 <FileText className="w-4 h-4 mr-2" />
                 Download as PDF
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleExportJSON} data-testid="menu-download-hipaa-json">
+              <DropdownMenuItem onClick={() => handleExportClick("json")} data-testid="menu-download-hipaa-json">
                 <FileText className="w-4 h-4 mr-2" />
                 Download as JSON
               </DropdownMenuItem>
@@ -340,6 +368,13 @@ export default function HIPAAAuditTimeline({ profile, vendors, findings, auditPh
           </div>
         </div>
       )}
+
+      <EmailCaptureModal
+        open={emailModalOpen}
+        onOpenChange={setEmailModalOpen}
+        format={exportFormat}
+        onSubmit={handleEmailSubmit}
+      />
     </div>
   );
 }
